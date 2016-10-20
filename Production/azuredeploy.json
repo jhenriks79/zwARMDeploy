@@ -1,0 +1,501 @@
+{
+    "$schema": "http://schema.management.azure.com/schemas/2015-01-01/deploymentTemplate.json",
+    "contentVersion": "1.0.0.0",
+    "parameters": {
+        "vmSku": {
+            "type": "string",
+            "defaultValue": "Standard_A1",
+            "metadata": {
+                "description": "Size of VMs in the VM Scale Set."
+            }
+        },
+        "ubuntuOSVersion": {
+            "type": "string",
+            "defaultValue": "14.04.4-LTS",
+            "allowedValues": [
+                "15.10",
+                "14.04.4-LTS"
+            ],
+            "metadata": {
+                "description": "The Ubuntu version for the VM. This will pick a fully patched image of this given Ubuntu version. Allowed values are: 15.10, 14.04.4-LTS."
+            }
+        },
+        "adminUsername": {
+            "type": "string",
+            "metadata": {
+                "description": "Admin username on all VMs."
+            }
+        },
+        "adminPassword": {
+            "type": "securestring",
+            "metadata": {
+                "description": "Admin password on all VMs."
+            }
+        }
+    },
+    "variables": {
+        "resourcePrefix": "zwstage",
+        "numberOfWebVMInstances": 1,
+        "numberOfMidVMInstances": 1,
+        "addressPrefix": "10.0.0.0/16",
+        "mgmtSubnetName": "mgmt-subnet",
+        "mgmtSubnetPrefix": "10.0.0.0/24",
+        "webSubnetName": "web-subnet",
+        "webSubnetPrefix": "10.0.1.0/24",
+        "midSubnetName": "mid-subnet",
+        "midSubnetPrefix": "10.0.2.0/24",
+        "dataSubnetName": "data-subnet",
+        "dataSubnetPrefix": "10.0.3.0/24",
+        "publicIPAddressType": "Dynamic",
+        "storageAccountType": "Standard_LRS",
+        "dnsNameforLBIP": "[concat(variables('resourcePrefix'), 'dnslbip')]",
+        "dnsNameforJBoxIP": "[concat(variables('resourcePrefix'), 'dnsjboxip')]",
+        "internetLBName": "[concat(variables('resourcePrefix'), 'internetlb')]",
+        "internalLBName": "[concat(variables('resourcePrefix'), 'internallb')]",
+        "publicLBIPAddressName": "[concat(variables('resourcePrefix'), 'lbpip')]",
+        "publicJBoxIPAddressName": "[concat(variables('resourcePrefix'), 'jboxpip')]",
+        "vnetName": "[concat(variables('resourcePrefix'), 'vnet')]",
+        "jumpBoxPrefix": "[concat(variables('resourcePrefix'), 'jbox')]",
+        "jumpBoxSAName": "[concat(variables('jumpBoxPrefix'), 'sa')]",
+        "jumpBoxVMName": "[concat(variables('jumpBoxPrefix'), 'vm')]",
+        "jumpBoxOSDiskName": "[concat(variables('jumpBoxPrefix'), 'osdisk')]",
+        "jumpBoxVHDContainerName": "[concat(variables('jumpBoxPrefix'), 'vhd')]",
+        "jumpBoxIPConfigName": "[concat(variables('jumpBoxPrefix'), 'ipconfig')]",
+        "jumpBoxNicName": "[concat(variables('jumpBoxPrefix'), 'nic')]",
+        "webPrefix": "[concat(variables('resourcePrefix'), 'web')]",
+        "webVMName": "[concat(variables('webPrefix'), 'vm')]",
+        "webNicName": "[concat(variables('webPrefix'), 'nic')]",
+        "webIPConfigName": "[concat(variables('webPrefix'), 'ipconfig')]",
+        "midPrefix": "[concat(variables('resourcePrefix'), 'mid')]",
+        "midVMName": "[concat(variables('midPrefix'), 'vm')]",
+        "midNicName": "[concat(variables('midPrefix'), 'nic')]",
+        "midIPConfigName": "[concat(variables('midPrefix'), 'ipconfig')]",
+        "vmssSASuffix": "[concat(variables('webPrefix'), 'sa')]",
+        "vmssSAArray": [
+            "[concat(uniqueString(concat(resourceGroup().id, variables('vmssSASuffix'), '0')))]",
+            "[concat(uniqueString(concat(resourceGroup().id, variables('vmssSASuffix'), '1')))]",
+            "[concat(uniqueString(concat(resourceGroup().id, variables('vmssSASuffix'), '2')))]",
+            "[concat(uniqueString(concat(resourceGroup().id, variables('vmssSASuffix'), '3')))]",
+            "[concat(uniqueString(concat(resourceGroup().id, variables('vmssSASuffix'), '4')))]"
+        ],
+        "vmssSACount": "[length(variables('vmssSAArray'))]",
+        "vhdContainerName": "[concat(variables('resourcePrefix'), 'vhd')]",
+        "osDiskName": "[concat(variables('resourcePrefix'), 'osdisk')]",
+        "osType": {
+            "publisher": "Canonical",
+            "offer": "UbuntuServer",
+            "sku": "[parameters('ubuntuOSVersion')]",
+            "version": "latest"
+        },
+        "imageReference": "[variables('osType')]",
+        "computeApiVersion": "2016-03-30",
+        "networkApiVersion": "2016-03-30",
+        "storageApiVersion": "2015-06-15",
+        "publicIPAddressID": "[resourceId('Microsoft.Network/publicIPAddresses',variables('publicLBIPAddressName'))]",
+        "internetLBID": "[resourceId('Microsoft.Network/loadBalancers',variables('internetLBName'))]",
+        "frontEndInternetIPConfigID": "[concat(variables('internetLBID'),'/frontendIPConfigurations/InternetLoadBalancerFrontend')]",
+        "backEndInternetPoolID": "[concat(variables('internetLBID'),'/backendAddressPools/InternetLoadBalancerBackend')]",        
+        "internetLBProbeID": "[concat(variables('internetLBID'),'/probes/internetLBProbe')]",
+        "internalLBID": "[resourceId('Microsoft.Network/loadBalancers',variables('internalLBName'))]",
+        "backEndInternalPoolID": "[concat(variables('internalLBID'),'/backendAddressPools/InternalLoadBalancerBackend')]",
+        "vnetID": "[resourceId('Microsoft.Network/virtualNetworks',variables('vnetName'))]",
+        "webSubnetID": "[concat(variables('vnetID'),'/subnets/',variables ('webSubnetName'))]",
+        "midSubnetID": "[concat(variables('vnetID'),'/subnets/',variables ('midSubnetName'))]",
+        "mgmtSubnetID": "[concat(variables('vnetID'),'/subnets/',variables ('mgmtSubnetName'))]"
+    },
+    "resources": [
+        {
+            "apiVersion": "[variables('networkApiVersion')]",
+            "type": "Microsoft.Network/virtualNetworks",
+            "name": "[variables('vnetName')]",
+            "location": "[resourceGroup().location]",
+            "properties": {
+                "addressSpace": {
+                    "addressPrefixes": [
+                        "[variables('addressPrefix')]"
+                    ]
+                },
+                "subnets": [
+                    {
+                        "name": "[variables('mgmtSubnetName')]",
+                        "properties": {
+                            "addressPrefix": "[variables('mgmtSubnetPrefix')]"
+                        }
+                    },
+                    {
+                        "name": "[variables('webSubnetName')]",
+                        "properties": {
+                            "addressPrefix": "[variables('webSubnetPrefix')]"
+                        }
+                    },
+                    {
+                        "name": "[variables('midSubnetName')]",
+                        "properties": {
+                            "addressPrefix": "[variables('midSubnetPrefix')]"
+                        }
+                    },
+                    {
+                        "name": "[variables('dataSubnetName')]",
+                        "properties": {
+                            "addressPrefix": "[variables('dataSubnetPrefix')]"
+                        }
+                    }
+                ]
+            }
+        },
+        {
+            "apiVersion": "[variables('networkApiVersion')]",
+            "type": "Microsoft.Network/publicIPAddresses",
+            "name": "[variables('publicLBIPAddressName')]",
+            "location": "[resourceGroup().location]",
+            "properties": {
+                "publicIPAllocationMethod": "[variables('publicIPAddressType')]",
+                "dnsSettings": {
+                    "domainNameLabel": "[variables('dnsNameforLBIP')]"
+                }
+            }
+        },
+        {
+            "apiVersion": "[variables('networkApiVersion')]",
+            "name": "[variables('internetLBName')]",
+            "type": "Microsoft.Network/loadBalancers",
+            "location": "[resourceGroup().location]",
+            "dependsOn": [
+                "[concat('Microsoft.Network/publicIPAddresses/', variables('publicLBIPAddressName'))]"
+            ],
+            "properties": {
+                "frontendIPConfigurations": [
+                    {
+                        "name": "InternetLoadBalancerFrontend",
+                        "properties": {
+                            "publicIPAddress": {
+                                "id": "[variables('publicIPAddressID')]"
+                            }
+                        }
+                    }
+                ],
+                "backendAddressPools": [
+                    {
+                        "name": "InternetLoadBalancerBackend"
+                    }
+                ],
+                "loadBalancingRules": [
+                    {
+                        "name": "httpIn",
+                        "properties": {
+                            "frontendIPConfiguration": {
+                                "id": "[variables('frontEndInternetIPConfigID')]"
+                            },
+                            "backendAddressPool": {
+                                "id": "[variables('backEndInternetPoolID')]"
+                            },
+                            "protocol": "Tcp",
+                            "frontendPort": 80,
+                            "backendPort": 80,
+                            "enableFloatingIP": false,
+                            "idleTimeoutInMinutes": 5,
+                            "probe": {
+                                "id": "[variables('internetLBProbeID')]"
+                            }
+                        }
+                    },
+                    {
+                        "name": "httpsIn",
+                        "properties": {
+                            "frontendIPConfiguration": {
+                                "id": "[variables('frontEndInternetIPConfigID')]"
+                            },
+                            "backendAddressPool": {
+                                "id": "[variables('backEndInternetPoolID')]"
+                            },
+                            "protocol": "Tcp",
+                            "frontendPort": 443,
+                            "backendPort": 443,
+                            "enableFloatingIP": false,
+                            "idleTimeoutInMinutes": 5
+                        }
+                    }
+                ],
+                "probes": [
+                    {
+                        "properties": {
+                            "protocol": "Tcp",
+                            "port": 80,
+                            "intervalInSeconds": 15,
+                            "numberOfProbes": 2
+                        },
+                        "name": "internetLBProbe"
+                    }
+                ]
+            }
+        },
+        {
+            "apiVersion": "[variables('networkApiVersion')]",
+            "type": "Microsoft.Network/loadBalancers",
+            "name": "[variables('internalLBName')]",
+            "location": "[resourceGroup().location]",
+            "dependsOn": [
+                "[variables('vnetID')]"
+            ],
+            "properties": {
+                "frontendIPConfigurations": [
+                    {
+                        "properties": {
+                            "subnet": {
+                                "id": "[variables('midSubnetID')]"
+                            },
+                            "privateIPAddress": "10.0.2.5",
+                            "privateIPAllocationMethod": "Static"
+                        },
+                        "name": "InternalLoadBalancerFrontend"
+                    }
+                ],
+                "backendAddressPools": [
+                    {
+                        "name": "InternalLoadBalancerBackend"
+                    }
+                ]
+            }
+        },
+        {
+            "apiVersion": "[variables('networkApiVersion')]",
+            "type": "Microsoft.Network/publicIPAddresses",
+            "name": "[variables('publicJBoxIPAddressName')]",
+            "location": "[resourceGroup().location]",
+            "properties": {
+                "publicIPAllocationMethod": "[variables('publicIPAddressType')]",
+                "dnsSettings": {
+                    "domainNameLabel": "[variables('dnsNameforJBoxIP')]"
+                }
+            }
+        },
+        {
+            "apiVersion": "[variables('storageApiVersion')]",
+            "type": "Microsoft.Storage/storageAccounts",
+            "name": "[variables('jumpBoxSAName')]",
+            "location": "[resourceGroup().location]",
+            "properties": {
+                "accountType": "[variables('storageAccountType')]"
+            }
+        },
+        {
+            "apiVersion": "[variables('networkApiVersion')]",
+            "type": "Microsoft.Network/networkInterfaces",
+            "name": "[variables('jumpBoxNicName')]",
+            "location": "[resourceGroup().location]",
+            "dependsOn": [
+                "[concat('Microsoft.Network/publicIPAddresses/', variables('publicJBoxIPAddressName'))]",
+                "[concat('Microsoft.Network/virtualNetworks/', variables('vnetName'))]"
+            ],
+            "properties": {
+                "ipConfigurations": [
+                    {
+                        "name": "[variables('jumpBoxIPConfigName')]",
+                        "properties": {
+                            "privateIPAllocationMethod": "Dynamic",
+                            "publicIPAddress": {
+                                "id": "[resourceId('Microsoft.Network/publicIPAddresses', variables('publicJBoxIPAddressName'))]"
+                            },
+                            "subnet": {
+                                "id": "[variables('mgmtSubnetID')]"
+                            }
+                        }
+                    }
+                ]
+            }
+        },
+        {
+            "apiVersion": "[variables('computeApiVersion')]",
+            "type": "Microsoft.Compute/virtualMachines",
+            "name": "[variables('jumpBoxVMName')]",
+            "location": "[resourceGroup().location]",
+            "dependsOn": [
+                "[concat('Microsoft.Storage/storageAccounts/', variables('jumpBoxSAName'))]",
+                "[concat('Microsoft.Network/networkInterfaces/', variables('jumpBoxNicName'))]"
+            ],
+            "properties": {
+                "hardwareProfile": {
+                    "vmSize": "[parameters('vmSku')]"
+                },
+                "osProfile": {
+                    "computerName": "[variables('jumpBoxVMName')]",
+                    "adminUsername": "[parameters('adminUsername')]",
+                    "adminPassword": "[parameters('adminPassword')]"
+                },
+                "storageProfile": {
+                    "imageReference": "[variables('imageReference')]",
+                    "osDisk": {
+                        "name": "[variables('jumpBoxOSDiskName')]",
+                        "vhd": {
+                            "uri": "[concat('http://',variables('jumpBoxSAName'),'.blob.core.windows.net/',variables('jumpBoxVHDContainerName'),'/',variables('jumpBoxOSDiskName'),'.vhd')]"
+                        },
+                        "caching": "ReadWrite",
+                        "createOption": "FromImage"
+                    }
+                },
+                "networkProfile": {
+                    "networkInterfaces": [
+                        {
+                            "id": "[resourceId('Microsoft.Network/networkInterfaces',variables('jumpBoxNicName'))]"
+                        }
+                    ]
+                },
+                "diagnosticsProfile": {
+                    "bootDiagnostics": {
+                        "enabled": "true",
+                        "storageUri": "[concat('http://',variables('jumpBoxSAName'),'.blob.core.windows.net')]"
+                    }
+                }
+            }
+        },
+        {
+            "apiVersion": "[variables('storageApiVersion')]",
+            "type": "Microsoft.Storage/storageAccounts",
+            "name": "[concat(variables('vmssSAArray')[copyIndex()], 'sa')]",
+            "location": "[resourceGroup().location]",
+            "copy": {
+                "name": "vmssSALoop",
+                "count": "[variables('vmssSACount')]"
+            },
+            "properties": {
+                "accountType": "[variables('storageAccountType')]"
+            }
+        },
+        {
+            "apiVersion": "[variables('computeApiVersion')]",
+            "type": "Microsoft.Compute/virtualMachineScaleSets",
+            "name": "[variables('webVMName')]",
+            "location": "[resourceGroup().location]",
+            "dependsOn": [
+                "vmssSALoop",
+                "[concat('Microsoft.Network/virtualNetworks/', variables('vnetName'))]"
+            ],
+            "sku": {
+                "name": "[parameters('vmSku')]",
+                "tier": "Standard",
+                "capacity": "[variables('numberOfWebVMInstances')]"
+            },
+            "properties": {
+                "overprovision": "true",
+                "upgradePolicy": {
+                    "mode": "Manual"
+                },
+                "virtualMachineProfile": {
+                    "storageProfile": {
+                        "osDisk": {
+                            "vhdContainers": [
+                                "[concat('https://', variables('vmssSAArray')[0], 'sa', '.blob.core.windows.net/', variables('vhdContainerName'))]",
+                                "[concat('https://', variables('vmssSAArray')[1], 'sa', '.blob.core.windows.net/', variables('vhdContainerName'))]",
+                                "[concat('https://', variables('vmssSAArray')[2], 'sa', '.blob.core.windows.net/', variables('vhdContainerName'))]",
+                                "[concat('https://', variables('vmssSAArray')[3], 'sa', '.blob.core.windows.net/', variables('vhdContainerName'))]",
+                                "[concat('https://', variables('vmssSAArray')[4], 'sa', '.blob.core.windows.net/', variables('vhdContainerName'))]"
+                            ],
+                            "name": "[variables('osDiskName')]",
+                            "caching": "ReadOnly",
+                            "createOption": "FromImage"
+                        },
+                        "imageReference": "[variables('imageReference')]"
+                    },
+                    "osProfile": {
+                        "computerNamePrefix": "[variables('webVMName')]",
+                        "adminUsername": "[parameters('adminUsername')]",
+                        "adminPassword": "[parameters('adminPassword')]"
+                    },
+                    "networkProfile": {
+                        "networkInterfaceConfigurations": [
+                            {
+                                "name": "[variables('webNicName')]",
+                                "properties": {
+                                    "primary": true,
+                                    "ipConfigurations": [
+                                        {
+                                            "name": "[variables('webIPConfigName')]",
+                                            "properties": {
+                                                "subnet": {
+                                                    "id": "[variables('webSubnetID')]"
+                                                },
+                                                "loadBalancerBackendAddressPools": [
+                                                    {
+                                                        "id": "[variables('backEndInternetPoolID')]"
+                                                    }
+                                                ]
+                                            }
+                                        }
+                                    ]
+                                }
+                            }
+                        ]
+                    }
+                }
+            }
+        },
+        {
+            "apiVersion": "[variables('computeApiVersion')]",
+            "type": "Microsoft.Compute/virtualMachineScaleSets",
+            "name": "[variables('midVMName')]",
+            "location": "[resourceGroup().location]",
+            "dependsOn": [
+                "vmssSALoop",
+                "[concat('Microsoft.Network/virtualNetworks/', variables('vnetName'))]"
+            ],
+            "sku": {
+                "name": "[parameters('vmSku')]",
+                "tier": "Standard",
+                "capacity": "[variables('numberOfmidVMInstances')]"
+            },
+            "properties": {
+                "overprovision": "true",
+                "upgradePolicy": {
+                    "mode": "Manual"
+                },
+                "virtualMachineProfile": {
+                    "storageProfile": {
+                        "osDisk": {
+                            "vhdContainers": [
+                                "[concat('https://', variables('vmssSAArray')[0], 'sa', '.blob.core.windows.net/', variables('vhdContainerName'))]",
+                                "[concat('https://', variables('vmssSAArray')[1], 'sa', '.blob.core.windows.net/', variables('vhdContainerName'))]",
+                                "[concat('https://', variables('vmssSAArray')[2], 'sa', '.blob.core.windows.net/', variables('vhdContainerName'))]",
+                                "[concat('https://', variables('vmssSAArray')[3], 'sa', '.blob.core.windows.net/', variables('vhdContainerName'))]",
+                                "[concat('https://', variables('vmssSAArray')[4], 'sa', '.blob.core.windows.net/', variables('vhdContainerName'))]"
+                            ],
+                            "name": "[variables('osDiskName')]",
+                            "caching": "ReadOnly",
+                            "createOption": "FromImage"
+                        },
+                        "imageReference": "[variables('imageReference')]"
+                    },
+                    "osProfile": {
+                        "computerNamePrefix": "[variables('midVMName')]",
+                        "adminUsername": "[parameters('adminUsername')]",
+                        "adminPassword": "[parameters('adminPassword')]"
+                    },
+                    "networkProfile": {
+                        "networkInterfaceConfigurations": [
+                            {
+                                "name": "[variables('midNicName')]",
+                                "properties": {
+                                    "primary": true,
+                                    "ipConfigurations": [
+                                        {
+                                            "name": "[variables('midIPConfigName')]",
+                                            "properties": {
+                                                "subnet": {
+                                                    "id": "[variables('midSubnetID')]"
+                                                },
+                                                "loadBalancerBackendAddressPools": [
+                                                    {
+                                                        "id": "[variables('backEndInternalPoolID')]"
+                                                    }
+                                                ]
+                                            }
+                                        }
+                                    ]
+                                }
+                            }
+                        ]
+                    }
+                }
+            }
+        }
+    ]
+}
