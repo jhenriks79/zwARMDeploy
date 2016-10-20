@@ -4,7 +4,7 @@
     "parameters": {
         "resourcePrefix": {
             "type": "string",
-            "defaultValue": "zwdev",
+            "defaultValue": "zwdevwe",
             "metadata": {
                 "description": "The prefix to use for all resources when provisioning"
             }
@@ -35,7 +35,7 @@
         },
         "vmSize": {
             "type": "string",
-            "defaultValue": "Standard_A1",
+            "defaultValue": "Standard_D4",
             "allowedValues": [
                 "Standard_A1",
                 "Standard_A2",
@@ -60,9 +60,9 @@
                 "description": "The Ubuntu version for the VM. This will pick a fully patched image of this given Ubuntu version. Allowed values: 12.04.5-LTS, 14.04.2-LTS, 15.10."
             }
         },
-        "_artifactsLocation": {
+        "artifactsLocation": {
             "type": "string",
-            "defaultValue": "https://raw.githubusercontent.com/Azure/azure-quickstart-templates/master/mysql-standalone-server-ubuntu",
+            "defaultValue": "https://github.com/jhenriks79/zwARMDeploy/tree/master/Dev",
             "metadata": {
                 "description": "Default URI of the template folder. Override with your own URI when using a different path."
             }
@@ -214,7 +214,7 @@
                 "autoUpgradeMinorVersion": true,
                 "settings": {
                     "fileUris": [
-                        "[concat(parameters('_artifactsLocation'),'/scripts/install_mysql_5.7.sh')]"
+                        "[concat(parameters('artifactsLocation'),'/scripts/install_mysql_5.7.sh')]"
                     ]
                 },
                 "protectedSettings": {
