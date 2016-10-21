@@ -194,7 +194,7 @@
                         }
                     },
                     {
-                        "name": "allow-ssh",
+                        "name": "allow-justin",
                         "properties": {
                             "description": "Allow Justin",
                             "protocol": "Tcp",
@@ -204,6 +204,20 @@
                             "destinationAddressPrefix": "*",
                             "access": "Allow",
                             "priority": 200,
+                            "direction": "Inbound"
+                        }
+                    },
+                    {
+                        "name": "allow-jan",
+                        "properties": {
+                            "description": "Allow Jan",
+                            "protocol": "Tcp",
+                            "sourcePortRange": "*",
+                            "destinationPortRange": "22",
+                            "sourceAddressPrefix": "77.27.225.108",
+                            "destinationAddressPrefix": "*",
+                            "access": "Allow",
+                            "priority": 201,
                             "direction": "Inbound"
                         }
                     },
