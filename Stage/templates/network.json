@@ -1,0 +1,214 @@
+{
+    "$schema": "https://schema.management.azure.com/schemas/2015-01-01/deploymentTemplate.json",
+    "contentVersion": "1.0.0.0",
+    "parameters": {
+        "resourcePrefix": {
+            "type": "string",
+            "metadata": {
+                "description": "The prefix to use for all resources when provisioning"
+            }
+        },
+        "dnsNamePrefix": {
+            "type": "string",
+            "metadata": {
+                "description": "DNS Name for the publicly accessible node. Must be lowercase. It should match with the following regular expression: ^[a-z][a-z0-9-]{1,61}[a-z0-9]$ or it will raise an error."
+            }
+        }
+    },
+    "variables": {
+        "addressPrefix": "10.0.0.0/16",
+        "mgmtSubnetName": "mgmt-subnet",
+        "mgmtSubnetPrefix": "10.0.0.0/24",
+        "frontEndSubnetName": "frontend-subnet",
+        "frontEndSubnetPrefix": "10.0.1.0/24",        
+        "backEndSubnetName": "backend-subnet",
+        "backEndSubnetPrefix": "10.0.2.0/24",
+        "publicIPAddressType": "Dynamic",
+        "dnsNameforLBIP": "[concat(parameters('resourcePrefix'), 'dnslbip')]",
+        "dnsNameforJBoxIP": "[concat(parameters('resourcePrefix'), 'dnsjboxip')]",
+        "internetLBName": "[concat(parameters('resourcePrefix'), 'internetlb')]",
+        "internalLBName": "[concat(parameters('resourcePrefix'), 'internallb')]",
+        "publicLBIPAddressName": "[concat(parameters('resourcePrefix'), 'lbpip')]",
+        "publicJBoxIPAddressName": "[concat(parameters('resourcePrefix'), 'jboxpip')]",
+                
+        "networkApiVersion": "2016-03-30",
+        "publicIPAddressID": "[resourceId('Microsoft.Network/publicIPAddresses',variables('publicLBIPAddressName'))]",
+        "internetLBID": "[resourceId('Microsoft.Network/loadBalancers',variables('internetLBName'))]",
+        "frontEndInternetIPConfigID": "[concat(variables('internetLBID'),'/frontendIPConfigurations/InternetLoadBalancerFrontend')]",
+        "backEndInternetPoolID": "[concat(variables('internetLBID'),'/backendAddressPools/InternetLoadBalancerBackend')]",        
+        "internetLBProbeID": "[concat(variables('internetLBID'),'/probes/internetLBProbe')]",
+        "internalLBID": "[resourceId('Microsoft.Network/loadBalancers',variables('internalLBName'))]",
+        "backEndInternalPoolID": "[concat(variables('internalLBID'),'/backendAddressPools/InternalLoadBalancerBackend')]",
+        "vnetID": "[resourceId('Microsoft.Network/virtualNetworks',variables('vnetName'))]",
+        "webSubnetID": "[concat(variables('vnetID'),'/subnets/',variables ('frontEndSubnetName'))]",
+        "midSubnetID": "[concat(variables('vnetID'),'/subnets/',variables ('midSubnetName'))]",
+        "mgmtSubnetID": "[concat(variables('vnetID'),'/subnets/',variables ('mgmtSubnetName'))]"
+    },
+    "resources": [
+        {
+            "apiVersion": "[variables('networkApiVersion')]",
+            "type": "Microsoft.Network/virtualNetworks",
+            "name": "[variables('vnetName')]",
+            "location": "[resourceGroup().location]",
+            "properties": {
+                "addressSpace": {
+                    "addressPrefixes": [
+                        "[variables('addressPrefix')]"
+                    ]
+                },
+                "subnets": [
+                    {
+                        "name": "[variables('mgmtSubnetName')]",
+                        "properties": {
+                            "addressPrefix": "[variables('mgmtSubnetPrefix')]"
+                        }
+                    },
+                    {
+                        "name": "[variables('frontEndSubnetName')]",
+                        "properties": {
+                            "addressPrefix": "[variables('frontEndSubnetPrefix')]"
+                        }
+                    },
+                    {
+                        "name": "[variables('midSubnetName')]",
+                        "properties": {
+                            "addressPrefix": "[variables('midSubnetPrefix')]"
+                        }
+                    },
+                    {
+                        "name": "[variables('backEndSubnetName')]",
+                        "properties": {
+                            "addressPrefix": "[variables('backEndSubnetPrefix')]"
+                        }
+                    }
+                ]
+            }
+        },
+        {
+            "apiVersion": "[variables('networkApiVersion')]",
+            "type": "Microsoft.Network/publicIPAddresses",
+            "name": "[variables('publicLBIPAddressName')]",
+            "location": "[resourceGroup().location]",
+            "properties": {
+                "publicIPAllocationMethod": "[variables('publicIPAddressType')]",
+                "dnsSettings": {
+                    "domainNameLabel": "[variables('dnsNameforLBIP')]"
+                }
+            }
+        },
+        {
+            "apiVersion": "[variables('networkApiVersion')]",
+            "name": "[variables('internetLBName')]",
+            "type": "Microsoft.Network/loadBalancers",
+            "location": "[resourceGroup().location]",
+            "dependsOn": [
+                "[concat('Microsoft.Network/publicIPAddresses/', variables('publicLBIPAddressName'))]"
+            ],
+            "properties": {
+                "frontendIPConfigurations": [
+                    {
+                        "name": "InternetLoadBalancerFrontend",
+                        "properties": {
+                            "publicIPAddress": {
+                                "id": "[variables('publicIPAddressID')]"
+                            }
+                        }
+                    }
+                ],
+                "backendAddressPools": [
+                    {
+                        "name": "InternetLoadBalancerBackend"
+                    }
+                ],
+                "loadBalancingRules": [
+                    {
+                        "name": "httpIn",
+                        "properties": {
+                            "frontendIPConfiguration": {
+                                "id": "[variables('frontEndInternetIPConfigID')]"
+                            },
+                            "backendAddressPool": {
+                                "id": "[variables('backEndInternetPoolID')]"
+                            },
+                            "protocol": "Tcp",
+                            "frontendPort": 80,
+                            "backendPort": 80,
+                            "enableFloatingIP": false,
+                            "idleTimeoutInMinutes": 5,
+                            "probe": {
+                                "id": "[variables('internetLBProbeID')]"
+                            }
+                        }
+                    },
+                    {
+                        "name": "httpsIn",
+                        "properties": {
+                            "frontendIPConfiguration": {
+                                "id": "[variables('frontEndInternetIPConfigID')]"
+                            },
+                            "backendAddressPool": {
+                                "id": "[variables('backEndInternetPoolID')]"
+                            },
+                            "protocol": "Tcp",
+                            "frontendPort": 443,
+                            "backendPort": 443,
+                            "enableFloatingIP": false,
+                            "idleTimeoutInMinutes": 5
+                        }
+                    }
+                ],
+                "probes": [
+                    {
+                        "properties": {
+                            "protocol": "Tcp",
+                            "port": 80,
+                            "intervalInSeconds": 15,
+                            "numberOfProbes": 2
+                        },
+                        "name": "internetLBProbe"
+                    }
+                ]
+            }
+        },
+        {
+            "apiVersion": "[variables('networkApiVersion')]",
+            "type": "Microsoft.Network/loadBalancers",
+            "name": "[variables('internalLBName')]",
+            "location": "[resourceGroup().location]",
+            "dependsOn": [
+                "[variables('vnetID')]"
+            ],
+            "properties": {
+                "frontendIPConfigurations": [
+                    {
+                        "properties": {
+                            "subnet": {
+                                "id": "[variables('midSubnetID')]"
+                            },
+                            "privateIPAddress": "10.0.2.5",
+                            "privateIPAllocationMethod": "Static"
+                        },
+                        "name": "InternalLoadBalancerFrontend"
+                    }
+                ],
+                "backendAddressPools": [
+                    {
+                        "name": "InternalLoadBalancerBackend"
+                    }
+                ]
+            }
+        },
+        {
+            "apiVersion": "[variables('networkApiVersion')]",
+            "type": "Microsoft.Network/publicIPAddresses",
+            "name": "[variables('publicJBoxIPAddressName')]",
+            "location": "[resourceGroup().location]",
+            "properties": {
+                "publicIPAllocationMethod": "[variables('publicIPAddressType')]",
+                "dnsSettings": {
+                    "domainNameLabel": "[variables('dnsNameforJBoxIP')]"
+                }
+            }
+        }
+    ]
+}

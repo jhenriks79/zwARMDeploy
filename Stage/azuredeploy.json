@@ -1,42 +1,69 @@
 {
-    "$schema": "http://schema.management.azure.com/schemas/2015-01-01/deploymentTemplate.json",
+    "$schema": "https://schema.management.azure.com/schemas/2015-01-01/deploymentTemplate.json",
     "contentVersion": "1.0.0.0",
     "parameters": {
-        "vmSku": {
+        "resourcePrefix": {
             "type": "string",
-            "defaultValue": "Standard_A1",
+            "defaultValue": "zwdevwe",
             "metadata": {
-                "description": "Size of VMs in the VM Scale Set."
-            }
-        },
-        "ubuntuOSVersion": {
-            "type": "string",
-            "defaultValue": "14.04.4-LTS",
-            "allowedValues": [
-                "15.10",
-                "14.04.4-LTS"
-            ],
-            "metadata": {
-                "description": "The Ubuntu version for the VM. This will pick a fully patched image of this given Ubuntu version. Allowed values are: 15.10, 14.04.4-LTS."
+                "description": "The prefix to use for all resources when provisioning"
             }
         },
         "adminUsername": {
             "type": "string",
             "metadata": {
-                "description": "Admin username on all VMs."
+                "description": "User name for the Virtual Machine."
             }
         },
         "adminPassword": {
             "type": "securestring",
             "metadata": {
-                "description": "Admin password on all VMs."
+                "description": "Password for the Virtual Machine."
+            }
+        },
+        "mysqlPassword": {
+            "type": "securestring",
+            "metadata": {
+                "description": "Password for the openvpn user."
+            }
+        },
+        "dnsNamePrefix": {
+            "type": "string",
+            "metadata": {
+                "description": "DNS Name for the publicly accessible node. Must be lowercase. It should match with the following regular expression: ^[a-z][a-z0-9-]{1,61}[a-z0-9]$ or it will raise an error."
+            }
+        },
+        "vmSize": {
+            "type": "string",
+            "defaultValue": "Standard_D3_v2",
+            "allowedValues": [
+                "Standard_A1",
+                "Standard_A2",
+                "Standard_A3",
+                "Standard_D1_v2",
+                "Standard_D2_v2",
+                "Standard_D3_v2",
+                "Standard_D4_v2",
+                "Standard_D5_v2"
+            ],
+            "metadata": {
+                "description": "The size of the virtual machines used when provisioning"
+            }
+        },
+        "ubuntuOSVersion": {
+            "type": "string",
+            "defaultValue": "14.04.2-LTS",
+            "allowedValues": [
+                "12.04.5-LTS",
+                "14.04.2-LTS",
+                "15.10"
+            ],
+            "metadata": {
+                "description": "The Ubuntu version for the VM. This will pick a fully patched image of this given Ubuntu version. Allowed values: 12.04.5-LTS, 14.04.2-LTS, 15.10."
             }
         }
     },
     "variables": {
-        "resourcePrefix": "zwprod",
-        "numberOfWebVMInstances": 1,
-        "numberOfMidVMInstances": 1,
         "addressPrefix": "10.0.0.0/16",
         "mgmtSubnetName": "mgmt-subnet",
         "mgmtSubnetPrefix": "10.0.0.0/24",
@@ -47,47 +74,30 @@
         "dataSubnetName": "data-subnet",
         "dataSubnetPrefix": "10.0.3.0/24",
         "publicIPAddressType": "Dynamic",
-        "storageAccountType": "Standard_LRS",
-        "dnsNameforLBIP": "[concat(variables('resourcePrefix'), 'dnslbip')]",
-        "dnsNameforJBoxIP": "[concat(variables('resourcePrefix'), 'dnsjboxip')]",
-        "internetLBName": "[concat(variables('resourcePrefix'), 'internetlb')]",
-        "internalLBName": "[concat(variables('resourcePrefix'), 'internallb')]",
-        "publicLBIPAddressName": "[concat(variables('resourcePrefix'), 'lbpip')]",
-        "publicJBoxIPAddressName": "[concat(variables('resourcePrefix'), 'jboxpip')]",
-        "vnetName": "[concat(variables('resourcePrefix'), 'vnet')]",
-        "jumpBoxPrefix": "[concat(variables('resourcePrefix'), 'jbox')]",
+        "dnsNameforLBIP": "[concat(parameters('resourcePrefix'), 'dnslbip')]",
+        "dnsNameforJBoxIP": "[concat(parameters('resourcePrefix'), 'dnsjboxip')]",
+        "internetLBName": "[concat(parameters('resourcePrefix'), 'internetlb')]",
+        "internalLBName": "[concat(parameters('resourcePrefix'), 'internallb')]",
+        "publicLBIPAddressName": "[concat(parameters('resourcePrefix'), 'lbpip')]",
+        "publicJBoxIPAddressName": "[concat(parameters('resourcePrefix'), 'jboxpip')]",
+        "vnetName": "[concat(parameters('resourcePrefix'), 'vnet')]",
+        "jumpBoxPrefix": "[concat(parameters('resourcePrefix'), 'jbox')]",
         "jumpBoxSAName": "[concat(variables('jumpBoxPrefix'), 'sa')]",
         "jumpBoxVMName": "[concat(variables('jumpBoxPrefix'), 'vm')]",
         "jumpBoxOSDiskName": "[concat(variables('jumpBoxPrefix'), 'osdisk')]",
         "jumpBoxVHDContainerName": "[concat(variables('jumpBoxPrefix'), 'vhd')]",
         "jumpBoxIPConfigName": "[concat(variables('jumpBoxPrefix'), 'ipconfig')]",
         "jumpBoxNicName": "[concat(variables('jumpBoxPrefix'), 'nic')]",
-        "webPrefix": "[concat(variables('resourcePrefix'), 'web')]",
+        "webPrefix": "[concat(parameters('resourcePrefix'), 'web')]",
         "webVMName": "[concat(variables('webPrefix'), 'vm')]",
         "webNicName": "[concat(variables('webPrefix'), 'nic')]",
         "webIPConfigName": "[concat(variables('webPrefix'), 'ipconfig')]",
-        "midPrefix": "[concat(variables('resourcePrefix'), 'mid')]",
+        "midPrefix": "[concat(parameters('resourcePrefix'), 'mid')]",
         "midVMName": "[concat(variables('midPrefix'), 'vm')]",
         "midNicName": "[concat(variables('midPrefix'), 'nic')]",
         "midIPConfigName": "[concat(variables('midPrefix'), 'ipconfig')]",
-        "vmssSASuffix": "[concat(variables('webPrefix'), 'sa')]",
-        "vmssSAArray": [
-            "[concat(uniqueString(concat(resourceGroup().id, variables('vmssSASuffix'), '0')))]",
-            "[concat(uniqueString(concat(resourceGroup().id, variables('vmssSASuffix'), '1')))]",
-            "[concat(uniqueString(concat(resourceGroup().id, variables('vmssSASuffix'), '2')))]",
-            "[concat(uniqueString(concat(resourceGroup().id, variables('vmssSASuffix'), '3')))]",
-            "[concat(uniqueString(concat(resourceGroup().id, variables('vmssSASuffix'), '4')))]"
-        ],
-        "vmssSACount": "[length(variables('vmssSAArray'))]",
-        "vhdContainerName": "[concat(variables('resourcePrefix'), 'vhd')]",
-        "osDiskName": "[concat(variables('resourcePrefix'), 'osdisk')]",
-        "osType": {
-            "publisher": "Canonical",
-            "offer": "UbuntuServer",
-            "sku": "[parameters('ubuntuOSVersion')]",
-            "version": "latest"
-        },
-        "imageReference": "[variables('osType')]",
+        "vhdContainerName": "[concat(parameters('resourcePrefix'), 'vhd')]",
+        "osDiskName": "[concat(parameters('resourcePrefix'), 'osdisk')]",
         "computeApiVersion": "2016-03-30",
         "networkApiVersion": "2016-03-30",
         "storageApiVersion": "2015-06-15",

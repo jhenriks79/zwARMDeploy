@@ -21,10 +21,10 @@
                 "description": "Password for the Virtual Machine."
             }
         },
-        "mysqlPassword": {
+        "mySqlPassword": {
             "type": "securestring",
             "metadata": {
-                "description": "Password for the openvpn user."
+                "description": "Password for MySQL."
             }
         },
         "dnsNamePrefix": {
@@ -81,7 +81,8 @@
         "virtualNetworkName": "[concat(parameters('resourcePrefix'), 'vnet')]",
         "vnetID": "[resourceId('Microsoft.Network/virtualNetworks',variables('virtualNetworkName'))]",
         "subnetRef": "[concat(variables('vnetID'),'/subnets/',variables('subnetName'))]",
-        "nsgName": "[concat(parameters('resourcePrefix'), 'nsg')]"
+        "nsgName": "[concat(parameters('resourcePrefix'), 'nsg')]",
+        "scriptsLocation": "https://github.com/jhenriks79/zwARMDeploy/blob/master/Dev/scripts/install_mysql_5.7.sh"
     },
     "resources": [
         {
@@ -292,6 +293,29 @@
                             "id": "[resourceId('Microsoft.Network/networkInterfaces',variables('nicName'))]"
                         }
                     ]
+                }
+            }
+        },
+        {
+            "apiVersion": "[variables('apiVersion')]",
+            "type": "Microsoft.Compute/virtualMachines/extensions",
+            "name": "[concat(variables('vmName'),'/mysqlscript')]",            
+            "location": "[resourceGroup().location]",
+            "dependsOn": [
+                "[concat('Microsoft.Compute/virtualMachines/', variables('vmName'))]"
+            ],
+            "properties": {
+                "publisher": "Microsoft.Azure.Extensions",
+                "type": "CustomScript",
+                "typeHandlerVersion": "2.0",
+                "autoUpgradeMinorVersion": true,
+                "settings": {
+                    "fileUris": [
+                        "[variables('scriptsLocation')]"
+                    ]
+                },
+                "protectedSettings": {
+                    "commandToExecute": "[concat('bash install_mysql_5.7.sh ', parameters('mySqlPassword'))]"
                 }
             }
         }

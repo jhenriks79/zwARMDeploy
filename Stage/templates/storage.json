@@ -1,0 +1,66 @@
+{
+    "$schema": "https://schema.management.azure.com/schemas/2015-01-01/deploymentTemplate.json",
+    "contentVersion": "1.0.0.0",
+    "parameters": {
+        "resourcePrefix": {
+            "type": "string",
+            "metadata": {
+                "description": "The prefix to use for all resources when provisioning"
+            }
+        },
+        "frontendPrefix": {
+            "type": "string",
+            "metadata": {
+                "description": "The prefix to use for all front end resources when provisioning"
+            }
+        },
+        "backendPrefix": {
+            "type": "string",
+            "metadata": {
+                "description": "The prefix to use for all backend resources when provisioning"
+            }
+        },
+        "jumpBoxPrefix": {
+            "type": "string",
+            "metadata": {
+                "description": "The prefix to use for all jump box resources when provisioning"
+            }
+        }
+    },
+    "variables": {
+        "backEndSAPrefix": "[concat(parameters('resourcePrefix'), parameters('backendPrefix'), 'sa')]",
+        "frontEndSAPrefix": "[concat(parameters('resourcePrefix'), parameters('frontendPrefix'), 'sa')]",        
+        "jboxSAPrefix": "[concat(parameters('resourcePrefix'), parameters('jumpBoxPrefix'), 'sa')]",        
+        "storageAccountType": "Standard_LRS",
+        "storageApiVersion": "2015-06-15"
+    },
+    "resources": [
+        {
+            "apiVersion": "[variables('storageApiVersion')]",
+            "type": "Microsoft.Storage/storageAccounts",
+            "name": "[variables('frontEndSAPrefix')]",
+            "location": "[resourceGroup().location]",
+            "properties": {
+                "accountType": "[variables('storageAccountType')]"
+            }
+        },
+        {
+            "apiVersion": "[variables('storageApiVersion')]",
+            "type": "Microsoft.Storage/storageAccounts",
+            "name": "[variables('backEndSAPrefix')]",
+            "location": "[resourceGroup().location]",
+            "properties": {
+                "accountType": "[variables('storageAccountType')]"
+            }
+        },
+        {
+            "apiVersion": "[variables('storageApiVersion')]",
+            "type": "Microsoft.Storage/storageAccounts",
+            "name": "[variables('jboxSAPrefix')]",
+            "location": "[resourceGroup().location]",
+            "properties": {
+                "accountType": "[variables('storageAccountType')]"
+            }
+        }
+    ]
+}

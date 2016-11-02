@@ -1,0 +1,305 @@
+{
+    "$schema": "https://schema.management.azure.com/schemas/2015-01-01/deploymentTemplate.json",
+    "contentVersion": "1.0.0.0",
+    "parameters": {
+        "resourcePrefix": {
+            "type": "string",
+            "metadata": {
+                "description": "The prefix to use for all resources when provisioning"
+            }
+        },
+        "backEndPrefix": {
+            "type": "string",
+            "metadata": {
+                "description": "The prefix to use for all back end resources when provisioning"
+            }
+        },
+        "frontEndPrefix": {
+            "type": "string",
+            "metadata": {
+                "description": "The prefix to use for all front end resources when provisioning"
+            }
+        },
+        "jumpBoxPrefix": {
+            "type": "string",
+            "metadata": {
+                "description": "The prefix to use for all jump box resources when provisioning"
+            }
+        },
+        "adminUsername": {
+            "type": "string",
+            "metadata": {
+                "description": "User name for the Virtual Machine."
+            }
+        },
+        "adminPassword": {
+            "type": "securestring",
+            "metadata": {
+                "description": "Password for the Virtual Machine."
+            }
+        },
+        "networkApiVersion": {
+            "type": "string",
+            "metadata": {
+                "description": "The network API version to use when provisioning networking resources."
+            }
+        },
+        "publicBackEndIPAddressName": {
+            "type": "string",
+            "metadata": {
+                "description": "The public IP address to use when provisioning back end networking resources."
+            }
+        },
+        "publicBackEndIPAddressName": {
+            "type": "string",
+            "metadata": {
+                "description": "The public IP address to use when provisioning back end networking resources."
+            }
+        },
+        "vmSize": {
+            "type": "string",
+            "metadata": {
+                "description": "The size of the virtual machines used when provisioning"
+            }
+        },
+        "ubuntuOSVersion": {
+            "type": "string",
+            "metadata": {
+                "description": "The Ubuntu version for the VM. This will pick a fully patched image of this given Ubuntu version. Allowed values: 12.04.5-LTS, 14.04.2-LTS, 15.10."
+            }
+        }
+    },
+    "variables": {
+        "backEndNicName": "[concat(parameters('resourcePrefix'), parameters('backEndPrefix'), 'nic')]",
+        "backEndOSDiskName": "[concat(parameters('resourcePrefix'), parameters('backEndPrefix'), 'osdisk')]",
+        "backEndVHDContainerName": "[concat(parameters('resourcePrefix'), parameters('backEndPrefix'), 'vhd')]",
+        "backEndVMName": "[concat(parameters('resourcePrefix'), parameters('backEndPrefix'), 'vm')]",
+        "backEndIPConfigName": "[concat(parameters('resourcePrefix'), parameters('backEndPrefix'), 'ipconfig')]",        
+        "computeApiVersion": "2016-03-30",
+        "frontEndNicName": "[concat(parameters('resourcePrefix'), parameters('frontEndPrefix'), 'nic')]",
+        "frontEndOSDiskName": "[concat(parameters('resourcePrefix'), parameters('frontEndPrefix'), 'osdisk')]",
+        "frontEndVHDContainerName": "[concat(parameters('resourcePrefix'), parameters('frontEndPrefix'), 'vhd')]",
+        "frontEndVMName": "[concat(parameters('resourcePrefix'), parameters('frontEndPrefix'), 'vm')]",
+        "frontEndIPConfigName": "[concat(parameters('resourcePrefix'), parameters('frontEndPrefix'), 'ipconfig')]",
+        "imageOffer": "UbuntuServer",
+        "imagePublisher": "Canonical",        
+        "jboxNicName": "[concat(parameters('resourcePrefix'), parameters('jumpBoxPrefix'), 'nic')]",
+        "jboxOSDiskName": "[concat(parameters('resourcePrefix'), parameters('jumpBoxPrefix'), 'osdisk')]",
+        "jboxVHDContainerName": "[concat(parameters('resourcePrefix'), parameters('jumpBoxPrefix'), 'vhd')]",
+        "jboxVMName": "[concat(parameters('resourcePrefix'), parameters('jumpBoxPrefix'), 'vm')]",
+        "jboxIPConfigName": "[concat(parameters('resourcePrefix'), parameters('jumpBoxPrefix'), 'ipconfig')]"
+    },
+    "resources": [
+        {
+            "apiVersion": "[parameters('networkApiVersion')]",
+            "type": "Microsoft.Network/networkInterfaces",
+            "name": "[variables('backEndNicName')]",
+            "location": "[resourceGroup().location]",
+            "dependsOn": [
+                "[concat('Microsoft.Network/publicIPAddresses/', parameters('publicBackEndIPAddressName'))]",
+                // TODO - No public IP address - Dependency on back end LB
+                "[concat('Microsoft.Network/virtualNetworks/', parameters('vnetName'))]"
+            ],
+            "properties": {
+                "ipConfigurations": [
+                    {
+                        "name": "[variables('backEndIPConfigName')]",
+                        "properties": {
+                            "privateIPAllocationMethod": "Dynamic",
+                            "publicIPAddress": {
+                                "id": "[resourceId('Microsoft.Network/publicIPAddresses', parameters('publicBackEndIPAddressName'))]"
+                            },
+                            "subnet": {
+                                "id": "[parameters('mgmtSubnetID')]"
+                            }
+                        }
+                    }
+                ]
+            }
+        },
+        {
+            "apiVersion": "[variables('computeApiVersion')]",
+            "type": "Microsoft.Compute/virtualMachines",
+            "name": "[variables('backEndVMName')]",
+            "location": "[resourceGroup().location]",
+            "dependsOn": [
+                "[concat('Microsoft.Storage/storageAccounts/', parameters('backEndSAName'))]",
+                "[concat('Microsoft.Network/networkInterfaces/', variables('backEndNicName'))]"
+            ],
+            "properties": {
+                "hardwareProfile": {
+                    "vmSize": "[parameters('vmSize')]"
+                },
+                "osProfile": {
+                    "computerName": "[variables('backEndVMName')]",
+                    "adminUsername": "[parameters('adminUsername')]",
+                    "adminPassword": "[parameters('adminPassword')]"
+                },
+                "storageProfile": {
+                    "imageReference": "[variables('imagePublisher')]",
+                    "osDisk": {
+                        "name": "[variables('backEndOSDiskName')]",
+                        "vhd": {
+                            "uri": "[concat('http://',parameters('backEndSAName'),'.blob.core.windows.net/',variables('backEndVHDContainerName'),'/',variables('backEndOSDiskName'),'.vhd')]"
+                        },
+                        "caching": "ReadWrite",
+                        "createOption": "FromImage"
+                    }
+                },
+                "networkProfile": {
+                    "networkInterfaces": [
+                        {
+                            "id": "[resourceId('Microsoft.Network/networkInterfaces',variables('backEndNicName'))]"
+                        }
+                    ]
+                },
+                "diagnosticsProfile": {
+                    "bootDiagnostics": {
+                        "enabled": "true",
+                        "storageUri": "[concat('http://',parameters('backEndSAName'),'.blob.core.windows.net')]"
+                    }
+                }
+            }
+        },
+        {
+            "apiVersion": "[parameters('networkApiVersion')]",
+            "type": "Microsoft.Network/networkInterfaces",
+            "name": "[variables('frontEndNicName')]",
+            "location": "[resourceGroup().location]",
+            "dependsOn": [
+                "[concat('Microsoft.Network/publicIPAddresses/', parameters('publicFrontEndIPAddressName'))]",
+                "[concat('Microsoft.Network/virtualNetworks/', parameters('vnetName'))]"
+            ],
+            "properties": {
+                "ipConfigurations": [
+                    {
+                        "name": "[variables('frontEndIPConfigName')]",
+                        "properties": {
+                            "privateIPAllocationMethod": "Dynamic",
+                            "publicIPAddress": {
+                                "id": "[resourceId('Microsoft.Network/publicIPAddresses', parameters('publicFrontEndIPAddressName'))]"
+                            },
+                            "subnet": {
+                                "id": "[parameters('mgmtSubnetID')]"
+                            }
+                        }
+                    }
+                ]
+            }
+        },
+        {
+            "apiVersion": "[variables('computeApiVersion')]",
+            "type": "Microsoft.Compute/virtualMachines",
+            "name": "[variables('frontEndVMName')]",
+            "location": "[resourceGroup().location]",
+            "dependsOn": [
+                "[concat('Microsoft.Storage/storageAccounts/', parameters('frontEndSAName'))]",
+                "[concat('Microsoft.Network/networkInterfaces/', variables('frontEndNicName'))]"
+            ],
+            "properties": {
+                "hardwareProfile": {
+                    "vmSize": "[parameters('vmSize')]"
+                },
+                "osProfile": {
+                    "computerName": "[variables('frontEndVMName')]",
+                    "adminUsername": "[parameters('adminUsername')]",
+                    "adminPassword": "[parameters('adminPassword')]"
+                },
+                "storageProfile": {
+                    "imageReference": "[variables('imagePublisher')]",
+                    "osDisk": {
+                        "name": "[variables('frontEndOSDiskName')]",
+                        "vhd": {
+                            "uri": "[concat('http://',parameters('frontEndSAName'),'.blob.core.windows.net/',variables('frontEndVHDContainerName'),'/',variables('frontEndOSDiskName'),'.vhd')]"
+                        },
+                        "caching": "ReadWrite",
+                        "createOption": "FromImage"
+                    }
+                },
+                "networkProfile": {
+                    "networkInterfaces": [
+                        {
+                            "id": "[resourceId('Microsoft.Network/networkInterfaces',variables('frontEndNicName'))]"
+                        }
+                    ]
+                },
+                "diagnosticsProfile": {
+                    "bootDiagnostics": {
+                        "enabled": "true",
+                        "storageUri": "[concat('http://',parameters('frontEndSAName'),'.blob.core.windows.net')]"
+                    }
+                }
+            }
+        },
+        {
+            "apiVersion": "[parameters('networkApiVersion')]",
+            "type": "Microsoft.Network/networkInterfaces",
+            "name": "[variables('jboxNicName')]",
+            "location": "[resourceGroup().location]",
+            "dependsOn": [
+                "[concat('Microsoft.Network/publicIPAddresses/', parameters('publicJBoxIPAddressName'))]",
+                "[concat('Microsoft.Network/virtualNetworks/', parameters('vnetName'))]"
+            ],
+            "properties": {
+                "ipConfigurations": [
+                    {
+                        "name": "[variables('jboxIPConfigName')]",
+                        "properties": {
+                            "privateIPAllocationMethod": "Dynamic",
+                            "publicIPAddress": {
+                                "id": "[resourceId('Microsoft.Network/publicIPAddresses', parameters('publicJBoxIPAddressName'))]"
+                            },
+                            "subnet": {
+                                "id": "[parameters('mgmtSubnetID')]"
+                            }
+                        }
+                    }
+                ]
+            }
+        },
+        {
+            "apiVersion": "[variables('computeApiVersion')]",
+            "type": "Microsoft.Compute/virtualMachines",
+            "name": "[variables('jboxVMName')]",
+            "location": "[resourceGroup().location]",
+            "dependsOn": [
+                "[concat('Microsoft.Storage/storageAccounts/', parameters('jboxSAName'))]",
+                "[concat('Microsoft.Network/networkInterfaces/', variables('jboxNicName'))]"
+            ],
+            "properties": {
+                "hardwareProfile": {
+                    "vmSize": "[parameters('vmSize')]"
+                },
+                "osProfile": {
+                    "computerName": "[variables('jboxVMName')]",
+                    "adminUsername": "[parameters('adminUsername')]",
+                    "adminPassword": "[parameters('adminPassword')]"
+                },
+                "storageProfile": {
+                    "imageReference": "[variables('imagePublisher')]",
+                    "osDisk": {
+                        "name": "[variables('jboxOSDiskName')]",
+                        "vhd": {
+                            "uri": "[concat('http://',parameters('jboxSAName'),'.blob.core.windows.net/',variables('jboxVHDContainerName'),'/',variables('jboxOSDiskName'),'.vhd')]"
+                        },
+                        "caching": "ReadWrite",
+                        "createOption": "FromImage"
+                    }
+                },
+                "networkProfile": {
+                    "networkInterfaces": [
+                        {
+                            "id": "[resourceId('Microsoft.Network/networkInterfaces',variables('jboxNicName'))]"
+                        }
+                    ]
+                },
+                "diagnosticsProfile": {
+                    "bootDiagnostics": {
+                        "enabled": "true",
+                        "storageUri": "[concat('http://',parameters('jboxSAName'),'.blob.core.windows.net')]"
+                    }
+                }
+            }
+        }
+    ]
+}
