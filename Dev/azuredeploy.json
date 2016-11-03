@@ -70,7 +70,7 @@
             "properties": {
                 "mode": "Incremental",
                 "templateLink": {
-                    "uri": "",
+                    "uri": "https://raw.githubusercontent.com/jhenriks79/zwARMDeploy/master/Dev/templates/network.json",
                     "contentVersion": "1.0.0.0"
                 },
                 "parameters": {
@@ -93,7 +93,7 @@
             "properties": {
                 "mode": "Incremental",
                 "templateLink": {
-                    "uri": "",
+                    "uri": "https://raw.githubusercontent.com/jhenriks79/zwARMDeploy/master/Dev/templates/storage.json",
                     "contentVersion": "1.0.0.0"
                 },
                 "parameters": {
@@ -113,7 +113,7 @@
             "properties": {
                 "mode": "Incremental",
                 "templateLink": {
-                    "uri": "",
+                    "uri": "https://raw.githubusercontent.com/jhenriks79/zwARMDeploy/master/Dev/templates/compute.json",
                     "contentVersion": "1.0.0.0"
                 },
                 "parameters": {
