@@ -10,19 +10,19 @@
             }
         },
         "adminUsername": {
-            "type": "string",
+            "type": "string",            
             "metadata": {
                 "description": "User name for the Virtual Machine."
             }
         },
         "adminPassword": {
-            "type": "securestring",
+            "type": "securestring",            
             "metadata": {
                 "description": "Password for the Virtual Machine."
             }
         },
         "dnsNamePrefix": {
-            "type": "string",
+            "type": "string",            
             "metadata": {
                 "description": "DNS Name for the publicly accessible node. Must be lowercase. It should match with the following regular expression: ^[a-z][a-z0-9-]{1,61}[a-z0-9]$ or it will raise an error."
             }
@@ -110,6 +110,10 @@
             "apiVersion": "2015-01-01",
             "name": "computeTemplate",
             "type": "Microsoft.Resources/deployments",
+            "dependsOn": [
+                "[concat('Microsoft.Resources/deployments/', 'networkTemplate')]",
+                "[concat('Microsoft.Resources/deployments/', 'storageTemplate')]"
+            ],
             "properties": {
                 "mode": "Incremental",
                 "templateLink": {

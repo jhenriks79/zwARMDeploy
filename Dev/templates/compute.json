@@ -37,11 +37,7 @@
             "apiVersion": "[variables('apiVersion')]",
             "type": "Microsoft.Compute/virtualMachines",
             "name": "[variables('vmName')]",
-            "location": "[resourceGroup().location]",
-            "dependsOn": [
-                "[concat('Microsoft.Storage/storageAccounts/', parameters('storageAccountName'))]",
-                "[concat('Microsoft.Network/networkInterfaces/', parameters('nicName'))]"
-            ],
+            "location": "[resourceGroup().location]",            
             "properties": {
                 "hardwareProfile": {
                     "vmSize": "[parameters('vmSize')]"
