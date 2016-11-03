@@ -21,12 +21,6 @@
                 "description": "Password for the Virtual Machine."
             }
         },
-        "mySqlPassword": {
-            "type": "securestring",
-            "metadata": {
-                "description": "Password for MySQL."
-            }
-        },
         "dnsNamePrefix": {
             "type": "string",
             "metadata": {
@@ -64,242 +58,86 @@
         }
     },
     "variables": {
-        "imagePublisher": "Canonical",
-        "imageOffer": "UbuntuServer",
-        "OSDiskName": "osdisk",
         "nicName": "[concat(parameters('resourcePrefix'), 'nic')]",
-        "addressPrefix": "10.0.0.0/16",
-        "subnetName": "[concat(parameters('resourcePrefix'), 'subnet')]",
-        "subnetPrefix": "10.0.0.0/24",
         "storageAccountName": "[concat(parameters('resourcePrefix'), 'sa')]",
-        "apiVersion": "2015-06-15",
-        "storageAccountType": "Standard_LRS",
-        "publicIPAddressName": "[concat(parameters('resourcePrefix'), 'pip')]",
-        "publicIPAddressType": "Dynamic",
-        "vmStorageAccountContainerName": "vhds",
-        "vmName": "[concat(parameters('resourcePrefix'), 'vm')]",
-        "virtualNetworkName": "[concat(parameters('resourcePrefix'), 'vnet')]",
-        "vnetID": "[resourceId('Microsoft.Network/virtualNetworks',variables('virtualNetworkName'))]",
-        "subnetRef": "[concat(variables('vnetID'),'/subnets/',variables('subnetName'))]",
-        "nsgName": "[concat(parameters('resourcePrefix'), 'nsg')]",
-        "scriptsLocation": "https://raw.githubusercontent.com/jhenriks79/zwARMDeploy/master/Dev/scripts/install_mysql_5.7.sh"
+        "storageAccountType": "Standard_LRS"
     },
     "resources": [
         {
-            "apiVersion": "[variables('apiVersion')]",
-            "type": "Microsoft.Storage/storageAccounts",
-            "name": "[variables('storageAccountName')]",
-            "location": "[resourceGroup().location]",
+            "apiVersion": "2015-01-01",
+            "name": "networkTemplate",
+            "type": "Microsoft.Resources/deployments",
             "properties": {
-                "accountType": "[variables('storageAccountType')]"
-            }
-        },
-        {
-            "apiVersion": "[variables('apiVersion')]",
-            "type": "Microsoft.Network/publicIPAddresses",
-            "name": "[variables('publicIPAddressName')]",
-            "location": "[resourceGroup().location]",
-            "properties": {
-                "publicIPAllocationMethod": "[variables('publicIPAddressType')]",
-                "dnsSettings": {
-                    "domainNameLabel": "[parameters('dnsNamePrefix')]"
+                "mode": "Incremental",
+                "templateLink": {
+                    "uri": "",
+                    "contentVersion": "1.0.0.0"
+                },
+                "parameters": {
+                    "resourcePrefix": {
+                        "value": "[parameters('resourcePrefix')]"
+                    },
+                    "dnsNamePrefix": {
+                        "value": "[parameters('dnsNamePrefix')]"
+                    },
+                    "nicName": {
+                        "value": "[variables('nicName')]"
+                    }
                 }
             }
         },
         {
-            "apiVersion": "[variables('apiVersion')]",
-            "type": "Microsoft.Network/virtualNetworks",
-            "name": "[variables('virtualNetworkName')]",
-            "location": "[resourceGroup().location]",
-            "dependsOn": [
-                "[resourceId('Microsoft.Network/networkSecurityGroups', variables('nsgName'))]"
-            ],
+            "apiVersion": "2015-01-01",
+            "name": "storageTemplate",
+            "type": "Microsoft.Resources/deployments",
             "properties": {
-                "addressSpace": {
-                    "addressPrefixes": [
-                        "[variables('addressPrefix')]"
-                    ]
+                "mode": "Incremental",
+                "templateLink": {
+                    "uri": "",
+                    "contentVersion": "1.0.0.0"
                 },
-                "subnets": [
-                    {
-                        "name": "[variables('subnetName')]",
-                        "properties": {
-                            "addressPrefix": "[variables('subnetPrefix')]",
-                            "networkSecurityGroup": {
-                                "id": "[resourceId('Microsoft.Network/networkSecurityGroups', variables('nsgName'))]"
-                            }
-                        }
+                "parameters": {
+                    "storageAccountName": {
+                        "value": "[variables('storageAccountName')]"
+                    },
+                    "storageAccountType": {
+                        "value": "[variables('storageAccountType')]"
                     }
-                ]
-            }
-        },
-        {
-            "apiVersion": "[variables('apiVersion')]",
-            "type": "Microsoft.Network/networkInterfaces",
-            "name": "[variables('nicName')]",
-            "location": "[resourceGroup().location]",
-            "dependsOn": [
-                "[concat('Microsoft.Network/publicIPAddresses/', variables('publicIPAddressName'))]",
-                "[concat('Microsoft.Network/virtualNetworks/', variables('virtualNetworkName'))]"
-            ],
-            "properties": {
-                "ipConfigurations": [
-                    {
-                        "name": "[concat(variables('nicName'), 'ipconfig')]",
-                        "properties": {
-                            "privateIPAllocationMethod": "Dynamic",
-                            "publicIPAddress": {
-                                "id": "[resourceId('Microsoft.Network/publicIPAddresses',variables('publicIPAddressName'))]"
-                            },
-                            "subnet": {
-                                "id": "[variables('subnetRef')]"
-                            }
-                        }
-                    }
-                ]
-            }
-        },
-        {
-            "apiVersion": "[variables('ApiVersion')]",
-            "type": "Microsoft.Network/networkSecurityGroups",
-            "name": "[variables('nsgName')]",
-            "location": "[resourceGroup().location]",
-            "properties": {
-                "securityRules": [
-                    {
-                        "name": "allow-http",
-                        "properties": {
-                            "description": "Allow HTTP",
-                            "protocol": "Tcp",
-                            "sourcePortRange": "*",
-                            "destinationPortRange": "80",
-                            "sourceAddressPrefix": "INTERNET",
-                            "destinationAddressPrefix": "*",
-                            "access": "Allow",
-                            "priority": 100,
-                            "direction": "Inbound"
-                        }
-                    },
-                    {
-                        "name": "allow-https",
-                        "properties": {
-                            "description": "Allow HTTPS",
-                            "protocol": "Tcp",
-                            "sourcePortRange": "*",
-                            "destinationPortRange": "443",
-                            "sourceAddressPrefix": "INTERNET",
-                            "destinationAddressPrefix": "*",
-                            "access": "Allow",
-                            "priority": 101,
-                            "direction": "Inbound"
-                        }
-                    },
-                    {
-                        "name": "allow-justin",
-                        "properties": {
-                            "description": "Allow Justin",
-                            "protocol": "Tcp",
-                            "sourcePortRange": "*",
-                            "destinationPortRange": "22",
-                            "sourceAddressPrefix": "71.231.12.245",
-                            "destinationAddressPrefix": "*",
-                            "access": "Allow",
-                            "priority": 200,
-                            "direction": "Inbound"
-                        }
-                    },
-                    {
-                        "name": "allow-jan",
-                        "properties": {
-                            "description": "Allow Jan",
-                            "protocol": "Tcp",
-                            "sourcePortRange": "*",
-                            "destinationPortRange": "22",
-                            "sourceAddressPrefix": "77.27.225.108",
-                            "destinationAddressPrefix": "*",
-                            "access": "Allow",
-                            "priority": 201,
-                            "direction": "Inbound"
-                        }
-                    },
-                    {
-                        "name": "deny-inbound",
-                        "properties": {
-                            "description": "Deny Inbound",
-                            "protocol": "Tcp",
-                            "sourcePortRange": "*",
-                            "destinationPortRange": "*",
-                            "sourceAddressPrefix": "INTERNET",
-                            "destinationAddressPrefix": "*",
-                            "access": "Deny",
-                            "priority": 300,
-                            "direction": "Inbound"
-                        }
-                    }                    
-                ]
-            }
-        },
-        {
-            "apiVersion": "[variables('apiVersion')]",
-            "type": "Microsoft.Compute/virtualMachines",
-            "name": "[variables('vmName')]",
-            "location": "[resourceGroup().location]",
-            "dependsOn": [
-                "[concat('Microsoft.Storage/storageAccounts/', variables('storageAccountName'))]",
-                "[concat('Microsoft.Network/networkInterfaces/', variables('nicName'))]"
-            ],
-            "properties": {
-                "hardwareProfile": {
-                    "vmSize": "[parameters('vmSize')]"
-                },
-                "osProfile": {
-                    "computerName": "[variables('vmName')]",
-                    "adminUsername": "[parameters('adminUsername')]",
-                    "adminPassword": "[parameters('adminPassword')]"
-                },
-                "storageProfile": {
-                    "imageReference": {
-                        "publisher": "[variables('imagePublisher')]",
-                        "offer": "[variables('imageOffer')]",
-                        "sku": "[parameters('ubuntuOSVersion')]",
-                        "version": "latest"
-                    },
-                    "osDisk": {
-                        "name": "osdisk",
-                        "vhd": {
-                            "uri": "[concat(reference(concat('Microsoft.Storage/storageAccounts/', variables('storageAccountName')), variables('apiVersion')).primaryEndpoints.blob, variables('vmStorageAccountContainerName'),'/',variables('OSDiskName'),'.vhd')]"
-                        },
-                        "caching": "ReadWrite",
-                        "createOption": "FromImage"
-                    }
-                },
-                "networkProfile": {
-                    "networkInterfaces": [
-                        {
-                            "id": "[resourceId('Microsoft.Network/networkInterfaces',variables('nicName'))]"
-                        }
-                    ]
                 }
             }
         },
         {
-            "apiVersion": "[variables('apiVersion')]",
-            "type": "Microsoft.Compute/virtualMachines/extensions",
-            "name": "[concat(variables('vmName'),'/mysqlscript')]",            
-            "location": "[resourceGroup().location]",
-            "dependsOn": [
-                "[concat('Microsoft.Compute/virtualMachines/', variables('vmName'))]"
-            ],
+            "apiVersion": "2015-01-01",
+            "name": "computeTemplate",
+            "type": "Microsoft.Resources/deployments",
             "properties": {
-                "publisher": "Microsoft.Azure.Extensions",
-                "type": "CustomScript",
-                "typeHandlerVersion": "2.0",
-                "autoUpgradeMinorVersion": true,
-                "settings": {
-                    "fileUris": [
-                        "[variables('scriptsLocation')]"
-                    ],
-                    "commandToExecute": "[concat('sh install_mysql_5.7.sh ', parameters('mySqlPassword'))]"
+                "mode": "Incremental",
+                "templateLink": {
+                    "uri": "",
+                    "contentVersion": "1.0.0.0"
+                },
+                "parameters": {
+                    "resourcePrefix": {
+                        "value": "[parameters('resourcePrefix')]"
+                    },
+                    "adminUsername": {
+                        "value": "[parameters('adminUsername')]"
+                    },
+                    "adminPassword": {
+                        "value": "[parameters('adminPassword')]"
+                    },
+                    "nicName": {
+                        "value": "[variables('nicName')]"
+                    },
+                    "storageAccountName": {
+                        "value": "[variables('storageAccountName')]"
+                    },
+                    "vmSize": {
+                        "value": "[parameters('vmSize')]"
+                    },
+                    "ubuntuOSVersion": {
+                        "value": "[parameters('ubuntuOSVersion')]"
+                    }
                 }
             }
         }
