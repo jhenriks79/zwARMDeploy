@@ -82,7 +82,7 @@
         "vnetID": "[resourceId('Microsoft.Network/virtualNetworks',variables('virtualNetworkName'))]",
         "subnetRef": "[concat(variables('vnetID'),'/subnets/',variables('subnetName'))]",
         "nsgName": "[concat(parameters('resourcePrefix'), 'nsg')]",
-        "scriptsLocation": "https://github.com/jhenriks79/zwARMDeploy/blob/master/Dev/scripts/install_mysql_5.7.sh"
+        "scriptsLocation": "https://raw.githubusercontent.com/jhenriks79/zwARMDeploy/master/Dev/scripts/install_mysql_5.7.sh"
     },
     "resources": [
         {
@@ -235,21 +235,7 @@
                             "priority": 300,
                             "direction": "Inbound"
                         }
-                    },
-                    {
-                        "name": "deny-outbound",
-                        "properties": {
-                            "description": "Deny Outbound",
-                            "protocol": "Tcp",
-                            "sourcePortRange": "*",
-                            "destinationPortRange": "*",
-                            "sourceAddressPrefix": "*",
-                            "destinationAddressPrefix": "INTERNET",
-                            "access": "Deny",
-                            "priority": 100,
-                            "direction": "Outbound"
-                        }
-                    }
+                    }                    
                 ]
             }
         },
@@ -312,10 +298,8 @@
                 "settings": {
                     "fileUris": [
                         "[variables('scriptsLocation')]"
-                    ]
-                },
-                "protectedSettings": {
-                    "commandToExecute": "[concat('bash install_mysql_5.7.sh ', parameters('mySqlPassword'))]"
+                    ],
+                    "commandToExecute": "[concat('sh install_mysql_5.7.sh ', parameters('mySqlPassword'))]"
                 }
             }
         }
