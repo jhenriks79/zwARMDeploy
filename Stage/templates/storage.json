@@ -2,64 +2,53 @@
     "$schema": "https://schema.management.azure.com/schemas/2015-01-01/deploymentTemplate.json",
     "contentVersion": "1.0.0.0",
     "parameters": {
-        "resourcePrefix": {
-            "type": "string",
-            "metadata": {
-                "description": "The prefix to use for all resources when provisioning"
-            }
+        "dataSAName": {
+            "type": "string"
         },
-        "frontendPrefix": {
-            "type": "string",
-            "metadata": {
-                "description": "The prefix to use for all front end resources when provisioning"
-            }
+        "jboxSAName": {
+            "type": "string"
+        },        
+        "storageAccountType": {
+            "type": "string"
         },
-        "backendPrefix": {
-            "type": "string",
-            "metadata": {
-                "description": "The prefix to use for all backend resources when provisioning"
-            }
-        },
-        "jumpBoxPrefix": {
-            "type": "string",
-            "metadata": {
-                "description": "The prefix to use for all jump box resources when provisioning"
-            }
+        "webVmssSAs": {
+            "type": "array"
         }
     },
     "variables": {
-        "backEndSAPrefix": "[concat(parameters('resourcePrefix'), parameters('backendPrefix'), 'sa')]",
-        "frontEndSAPrefix": "[concat(parameters('resourcePrefix'), parameters('frontendPrefix'), 'sa')]",        
-        "jboxSAPrefix": "[concat(parameters('resourcePrefix'), parameters('jumpBoxPrefix'), 'sa')]",        
-        "storageAccountType": "Standard_LRS",
-        "storageApiVersion": "2015-06-15"
+        "apiVersion": "2015-06-15",
+        "webVmssSAsCount": "[length(parameters('webVmssSAs'))]"
     },
     "resources": [
         {
-            "apiVersion": "[variables('storageApiVersion')]",
+            "apiVersion": "[variables('apiVersion')]",
             "type": "Microsoft.Storage/storageAccounts",
-            "name": "[variables('frontEndSAPrefix')]",
+            "name": "[parameters('jboxSAName')]",
             "location": "[resourceGroup().location]",
             "properties": {
-                "accountType": "[variables('storageAccountType')]"
+                "accountType": "[parameters('storageAccountType')]"
             }
         },
         {
-            "apiVersion": "[variables('storageApiVersion')]",
+            "apiVersion": "[variables('apiVersion')]",
             "type": "Microsoft.Storage/storageAccounts",
-            "name": "[variables('backEndSAPrefix')]",
+            "name": "[parameters('webVmssSAs')[copyIndex()]]",
             "location": "[resourceGroup().location]",
+            "copy": {
+                "name": "vmssSALoop",
+                "count": "[variables('webVmssSAsCount')]"
+            },
             "properties": {
-                "accountType": "[variables('storageAccountType')]"
+                "accountType": "[parameters('storageAccountType')]"
             }
         },
         {
-            "apiVersion": "[variables('storageApiVersion')]",
+            "apiVersion": "[variables('apiVersion')]",
             "type": "Microsoft.Storage/storageAccounts",
-            "name": "[variables('jboxSAPrefix')]",
+            "name": "[parameters('dataSAName')]",
             "location": "[resourceGroup().location]",
             "properties": {
-                "accountType": "[variables('storageAccountType')]"
+                "accountType": "[parameters('storageAccountType')]"
             }
         }
     ]

@@ -3,121 +3,138 @@
     "contentVersion": "1.0.0.0",
     "parameters": {
         "resourcePrefix": {
-            "type": "string",
-            "metadata": {
-                "description": "The prefix to use for all resources when provisioning"
-            }
+            "type": "string"
         },
-        "dnsNamePrefix": {
-            "type": "string",
-            "metadata": {
-                "description": "DNS Name for the publicly accessible node. Must be lowercase. It should match with the following regular expression: ^[a-z][a-z0-9-]{1,61}[a-z0-9]$ or it will raise an error."
-            }
+        "webDNSNamePrefix": {
+            "type": "string"
+        },
+        "dataNicName": {
+            "type": "string"
+        },
+        "jboxNicName": {
+            "type": "string"
         }
     },
     "variables": {
-        "addressPrefix": "10.0.0.0/16",
-        "mgmtSubnetName": "mgmt-subnet",
-        "mgmtSubnetPrefix": "10.0.0.0/24",
-        "frontEndSubnetName": "frontend-subnet",
-        "frontEndSubnetPrefix": "10.0.1.0/24",        
-        "backEndSubnetName": "backend-subnet",
-        "backEndSubnetPrefix": "10.0.2.0/24",
-        "publicIPAddressType": "Dynamic",
-        "dnsNameforLBIP": "[concat(parameters('resourcePrefix'), 'dnslbip')]",
-        "dnsNameforJBoxIP": "[concat(parameters('resourcePrefix'), 'dnsjboxip')]",
-        "internetLBName": "[concat(parameters('resourcePrefix'), 'internetlb')]",
-        "internalLBName": "[concat(parameters('resourcePrefix'), 'internallb')]",
-        "publicLBIPAddressName": "[concat(parameters('resourcePrefix'), 'lbpip')]",
-        "publicJBoxIPAddressName": "[concat(parameters('resourcePrefix'), 'jboxpip')]",
-                
-        "networkApiVersion": "2016-03-30",
-        "publicIPAddressID": "[resourceId('Microsoft.Network/publicIPAddresses',variables('publicLBIPAddressName'))]",
-        "internetLBID": "[resourceId('Microsoft.Network/loadBalancers',variables('internetLBName'))]",
-        "frontEndInternetIPConfigID": "[concat(variables('internetLBID'),'/frontendIPConfigurations/InternetLoadBalancerFrontend')]",
-        "backEndInternetPoolID": "[concat(variables('internetLBID'),'/backendAddressPools/InternetLoadBalancerBackend')]",        
-        "internetLBProbeID": "[concat(variables('internetLBID'),'/probes/internetLBProbe')]",
-        "internalLBID": "[resourceId('Microsoft.Network/loadBalancers',variables('internalLBName'))]",
-        "backEndInternalPoolID": "[concat(variables('internalLBID'),'/backendAddressPools/InternalLoadBalancerBackend')]",
-        "vnetID": "[resourceId('Microsoft.Network/virtualNetworks',variables('vnetName'))]",
-        "webSubnetID": "[concat(variables('vnetID'),'/subnets/',variables ('frontEndSubnetName'))]",
-        "midSubnetID": "[concat(variables('vnetID'),'/subnets/',variables ('midSubnetName'))]",
-        "mgmtSubnetID": "[concat(variables('vnetID'),'/subnets/',variables ('mgmtSubnetName'))]"
+        "apiVersion": "2015-06-15",
+        "nsgName": "[concat(parameters('resourcePrefix'), 'nsg')]",
+        "vnetConfig": {
+            "name": "[concat(parameters('resourcePrefix'), 'vnet')]",
+            "addressPrefix": "10.0.0.0/16",
+            "webSubnetName": "web-subnet",
+            "webSubnetPrefix": "10.0.0.0/24",
+            "dataSubnetName": "data-subnet",
+            "dataSubnetPrefix": "10.0.1.0/24",
+            "mgmtSubnetName": "mgmt-subnet",
+            "mgmtSubnetPrefix": "10.0.2.0/24"
+        },
+        "webLBConfig": {
+            "name": "[concat(parameters('resourcePrefix'), 'weblb')]",
+            "backendPoolName": "[concat(variables('webLBConfig').name, 'bepool')]",
+            "frontendIPConfigName": "[concat(variables('webLBConfig').name, 'feipconfig')]",
+            "pipAddressName": "[concat(variables('webLBConfig').name, 'pip')]",
+            "pipAddressType": "Dynamic",
+            "probeName": "[concat(variables('webLBConfig').name, 'probe')]"
+        },
+        "dataLBConfig": {
+            "name": "[concat(parameters('resourcePrefix'), 'datalb')]",
+            "dnsName": "[concat(variables('dataLBConfig').name, 'dns')]",
+            "backendPoolName": "[concat(variables('dataLBConfig').name, 'bepool')]",
+            "frontendIPConfigName": "[concat(variables('dataLBConfig').name, 'feipconfig')]",
+            "ipAddressPrefix": "10.0.2.5",
+            "ipAddressType": "Static",
+            "ipConfigName": "[concat(variables('dataLBConfig').name, 'ipconfig')]"
+        },
+        "jboxConfig": {
+            "name": "[concat(parameters('resourcePrefix'), 'jboxlb')]",
+            "dnsName": "[concat(variables('jboxConfig').name, 'dns')]",
+            "backendPoolName": "[concat(variables('jboxConfig').name, 'bepool')]",
+            "frontendIPConfigName": "[concat(variables('jboxConfig').name, 'feipconfig')]",
+            "ipConfigName": "[concat(variables('jboxConfig').name, 'ipconfig')]",
+            "pipAddressName": "[concat(variables('jboxConfig').name, 'pip')]",
+            "pipAddressType": "Static"
+        }
     },
     "resources": [
         {
-            "apiVersion": "[variables('networkApiVersion')]",
+            "apiVersion": "[variables('apiVersion')]",
             "type": "Microsoft.Network/virtualNetworks",
-            "name": "[variables('vnetName')]",
+            "name": "[variables('vnetConfig').name]",
             "location": "[resourceGroup().location]",
             "properties": {
                 "addressSpace": {
                     "addressPrefixes": [
-                        "[variables('addressPrefix')]"
+                        "[variables('vnetConfig').addressPrefix]"
                     ]
                 },
                 "subnets": [
                     {
-                        "name": "[variables('mgmtSubnetName')]",
+                        "name": "[variables('vnetConfig').webSubnetName]",
                         "properties": {
-                            "addressPrefix": "[variables('mgmtSubnetPrefix')]"
+                            "addressPrefix": "[variables('vnetConfig').webSubnetPrefix]"
                         }
                     },
                     {
-                        "name": "[variables('frontEndSubnetName')]",
+                        "name": "[variables('vnetConfig').dataSubnetName]",
                         "properties": {
-                            "addressPrefix": "[variables('frontEndSubnetPrefix')]"
+                            "addressPrefix": "[variables('vnetConfig').dataSubnetPrefix]"
                         }
                     },
                     {
-                        "name": "[variables('midSubnetName')]",
+                        "name": "[variables('vnetConfig').mgmtSubnetName]",
                         "properties": {
-                            "addressPrefix": "[variables('midSubnetPrefix')]"
-                        }
-                    },
-                    {
-                        "name": "[variables('backEndSubnetName')]",
-                        "properties": {
-                            "addressPrefix": "[variables('backEndSubnetPrefix')]"
+                            "addressPrefix": "[variables('vnetConfig').mgmtSubnetPrefix]"
                         }
                     }
                 ]
             }
         },
         {
-            "apiVersion": "[variables('networkApiVersion')]",
+            "apiVersion": "[variables('apiVersion')]",
             "type": "Microsoft.Network/publicIPAddresses",
-            "name": "[variables('publicLBIPAddressName')]",
+            "name": "[variables('webLBConfig').name]",
             "location": "[resourceGroup().location]",
             "properties": {
-                "publicIPAllocationMethod": "[variables('publicIPAddressType')]",
+                "publicIPAllocationMethod": "[variables('webLBConfig').pipAddressType]",
                 "dnsSettings": {
-                    "domainNameLabel": "[variables('dnsNameforLBIP')]"
+                    "domainNameLabel": "[parameters('webDNSNamePrefix')]"
                 }
             }
         },
         {
-            "apiVersion": "[variables('networkApiVersion')]",
-            "name": "[variables('internetLBName')]",
+            "apiVersion": "[variables('apiVersion')]",
+            "type": "Microsoft.Network/publicIPAddresses",
+            "name": "[variables('jboxConfig').pipAddressName]",
+            "location": "[resourceGroup().location]",
+            "properties": {
+                "publicIPAllocationMethod": "[variables('jboxConfig').pipAddressType]",
+                "dnsSettings": {
+                    "domainNameLabel": "[variables('jboxConfig').dnsName]"
+                }
+            }
+        },
+        {
+            "apiVersion": "[variables('apiVersion')]",
+            "name": "[variables('webLBConfig').name]",
             "type": "Microsoft.Network/loadBalancers",
             "location": "[resourceGroup().location]",
             "dependsOn": [
-                "[concat('Microsoft.Network/publicIPAddresses/', variables('publicLBIPAddressName'))]"
+                "[concat('Microsoft.Network/publicIPAddresses/', variables('webLBConfig').pipAddressName)]"
             ],
             "properties": {
                 "frontendIPConfigurations": [
                     {
-                        "name": "InternetLoadBalancerFrontend",
+                        "name": "[variables('webLBConfig').frontendIPConfigName]",
                         "properties": {
                             "publicIPAddress": {
-                                "id": "[variables('publicIPAddressID')]"
+                                "id": "[resourceId('Microsoft.Network/publicIPAddresses',variables('webLBConfig').pipAddressName)]"
                             }
                         }
                     }
                 ],
                 "backendAddressPools": [
                     {
-                        "name": "InternetLoadBalancerBackend"
+                        "name": "[variables('webLBConfig').backendPoolName]"
                     }
                 ],
                 "loadBalancingRules": [
@@ -125,10 +142,10 @@
                         "name": "httpIn",
                         "properties": {
                             "frontendIPConfiguration": {
-                                "id": "[variables('frontEndInternetIPConfigID')]"
+                                "id": "[concat(resourceId('Microsoft.Network/loadBalancers', variables('webLBConfig').name), '/frontendIPConfigurations/', variables('webLBConfig').frontendIPConfigName)]"
                             },
                             "backendAddressPool": {
-                                "id": "[variables('backEndInternetPoolID')]"
+                                "id": "[concat(resourceId('Microsoft.Network/loadBalancers', variables('webLBConfig').name), '/backendAddressPools/', variables('webLBConfig').backendPoolName)]"
                             },
                             "protocol": "Tcp",
                             "frontendPort": 80,
@@ -136,7 +153,7 @@
                             "enableFloatingIP": false,
                             "idleTimeoutInMinutes": 5,
                             "probe": {
-                                "id": "[variables('internetLBProbeID')]"
+                                "id": "[concat(resourceId('Microsoft.Network/loadBalancers', variables('webLBConfig').name), '/probes/', variables('webLBConfig').probeName)]"
                             }
                         }
                     },
@@ -144,10 +161,10 @@
                         "name": "httpsIn",
                         "properties": {
                             "frontendIPConfiguration": {
-                                "id": "[variables('frontEndInternetIPConfigID')]"
+                                "id": "[concat(resourceId('Microsoft.Network/loadBalancers', variables('webLBConfig').name), '/frontendIPConfigurations/', variables('webLBConfig').frontendIPConfigName)]"
                             },
                             "backendAddressPool": {
-                                "id": "[variables('backEndInternetPoolID')]"
+                                "id": "[concat(resourceId('Microsoft.Network/loadBalancers', variables('webLBConfig').name), '/backendAddressPools/', variables('webLBConfig').backendPoolName)]"
                             },
                             "protocol": "Tcp",
                             "frontendPort": 443,
@@ -165,50 +182,161 @@
                             "intervalInSeconds": 15,
                             "numberOfProbes": 2
                         },
-                        "name": "internetLBProbe"
+                        "name": "[variables('webLBConfig').probeName]"
                     }
                 ]
             }
         },
         {
-            "apiVersion": "[variables('networkApiVersion')]",
+            "apiVersion": "[variables('apiVersion')]",
             "type": "Microsoft.Network/loadBalancers",
-            "name": "[variables('internalLBName')]",
+            "name": "[variables('dataLBConfig').name]",
             "location": "[resourceGroup().location]",
             "dependsOn": [
-                "[variables('vnetID')]"
+                "[resourceId('Microsoft.Network/virtualNetworks', variables('vnetConfig').name)]"
             ],
             "properties": {
                 "frontendIPConfigurations": [
                     {
                         "properties": {
                             "subnet": {
-                                "id": "[variables('midSubnetID')]"
+                                "id": "[concat(resourceId('Microsoft.Network/virtualNetworks', variables('vnetConfig').name), '/subnets/', variables('vnetConfig').dataSubnetName)]"
                             },
-                            "privateIPAddress": "10.0.2.5",
-                            "privateIPAllocationMethod": "Static"
+                            "privateIPAddress": "[variables('dataLBConfig').ipAddressPrefix]",
+                            "privateIPAllocationMethod": "[variables('dataLBConfig').ipAddressType]"
                         },
-                        "name": "InternalLoadBalancerFrontend"
+                        "name": "[variables('dataLBConfig').frontendIPConfigName]"
                     }
                 ],
                 "backendAddressPools": [
                     {
-                        "name": "InternalLoadBalancerBackend"
+                        "name": "[variables('dataLBConfig').backendPoolName]"
                     }
                 ]
             }
         },
         {
-            "apiVersion": "[variables('networkApiVersion')]",
-            "type": "Microsoft.Network/publicIPAddresses",
-            "name": "[variables('publicJBoxIPAddressName')]",
+            "apiVersion": "[variables('apiVersion')]",
+            "type": "Microsoft.Network/networkInterfaces",
+            "name": "[parameters('dataNicName')]",
+            "location": "[resourceGroup().location]",
+            "dependsOn": [
+                "[concat('Microsoft.Network/virtualNetworks/', variables('dataLBConfig').name)]"
+            ],
+            "properties": {
+                "ipConfigurations": [
+                    {
+                        "name": "[variables('dataLBConfig').ipConfigName]",
+                        "properties": {
+                            "privateIPAllocationMethod": "Dynamic",
+                            "subnet": {
+                                "id": "[concat(resourceId('Microsoft.Network/virtualNetworks', variables('vnetConfig').name), '/subnets/', variables('vnetConfig').dataSubnetName)]"
+                            }
+                        }
+                    }
+                ]
+            }
+        },
+        {
+            "apiVersion": "[variables('apiVersion')]",
+            "type": "Microsoft.Network/networkInterfaces",
+            "name": "[parameters('jboxNicName')]",
+            "location": "[resourceGroup().location]",
+            "dependsOn": [
+                "[concat('Microsoft.Network/publicIPAddresses/', variables('jboxConfig').pipAddressName)]",
+                "[concat('Microsoft.Network/virtualNetworks/', variables('vnetConfig').name)]"
+            ],
+            "properties": {
+                "ipConfigurations": [
+                    {
+                        "name": "[variables('jboxConfig').ipConfigName]",
+                        "properties": {
+                            "privateIPAllocationMethod": "Dynamic",
+                            "publicIPAddress": {
+                                "id": "[resourceId('Microsoft.Network/publicIPAddresses', variables('jboxConfig').pipAddressName)]"
+                            },
+                            "subnet": {
+                                "id": "[concat(resourceId('Microsoft.Network/virtualNetworks', variables('vnetConfig').name), '/subnets/', variables('vnetConfig').mgmtSubnetName)]"
+                            }
+                        }
+                    }
+                ]
+            }
+        },
+        {
+            "apiVersion": "[variables('apiVersion')]",
+            "type": "Microsoft.Network/networkSecurityGroups",
+            "name": "[variables('nsgName')]",
             "location": "[resourceGroup().location]",
             "properties": {
-                "publicIPAllocationMethod": "[variables('publicIPAddressType')]",
-                "dnsSettings": {
-                    "domainNameLabel": "[variables('dnsNameforJBoxIP')]"
-                }
+                "securityRules": [
+                    {
+                        "name": "allow-http",
+                        "properties": {
+                            "description": "Allow HTTP",
+                            "protocol": "Tcp",
+                            "sourcePortRange": "*",
+                            "destinationPortRange": "80",
+                            "sourceAddressPrefix": "INTERNET",
+                            "destinationAddressPrefix": "*",
+                            "access": "Allow",
+                            "priority": 100,
+                            "direction": "Inbound"
+                        }
+                    },
+                    {
+                        "name": "allow-https",
+                        "properties": {
+                            "description": "Allow HTTPS",
+                            "protocol": "Tcp",
+                            "sourcePortRange": "*",
+                            "destinationPortRange": "443",
+                            "sourceAddressPrefix": "INTERNET",
+                            "destinationAddressPrefix": "*",
+                            "access": "Allow",
+                            "priority": 101,
+                            "direction": "Inbound"
+                        }
+                    },
+                    {
+                        "name": "allow-justin",
+                        "properties": {
+                            "description": "Allow Justin",
+                            "protocol": "Tcp",
+                            "sourcePortRange": "*",
+                            "destinationPortRange": "22",
+                            "sourceAddressPrefix": "71.231.12.245",
+                            "destinationAddressPrefix": "*",
+                            "access": "Allow",
+                            "priority": 200,
+                            "direction": "Inbound"
+                        }
+                    },
+                    {
+                        "name": "allow-jan",
+                        "properties": {
+                            "description": "Allow Jan",
+                            "protocol": "Tcp",
+                            "sourcePortRange": "*",
+                            "destinationPortRange": "22",
+                            "sourceAddressPrefix": "77.27.225.108",
+                            "destinationAddressPrefix": "*",
+                            "access": "Allow",
+                            "priority": 201,
+                            "direction": "Inbound"
+                        }
+                    }
+                ]
             }
         }
-    ]
+    ],
+    "outputs": {
+        "result": {
+            "type": "object",
+            "value": {
+                "webSubnetId": "[concat(resourceId('Microsoft.Network/virtualNetworks', variables('vnetConfig').name), '/subnets/', variables('vnetConfig').webSubnetName)]",
+                "webBackendPoolId": "[concat(resourceId('Microsoft.Network/loadBalancers', variables('webLBConfig').name), '/backendAddressPools/', variables('webLBConfig').backendPoolName)]"
+            }
+        }
+    }
 }

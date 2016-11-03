@@ -4,7 +4,7 @@
     "parameters": {
         "resourcePrefix": {
             "type": "string",
-            "defaultValue": "zwdevwe",
+            "defaultValue": "zwstagewe",
             "metadata": {
                 "description": "The prefix to use for all resources when provisioning"
             }
@@ -19,12 +19,6 @@
             "type": "securestring",
             "metadata": {
                 "description": "Password for the Virtual Machine."
-            }
-        },
-        "mysqlPassword": {
-            "type": "securestring",
-            "metadata": {
-                "description": "Password for the openvpn user."
             }
         },
         "dnsNamePrefix": {
@@ -64,445 +58,136 @@
         }
     },
     "variables": {
-        "addressPrefix": "10.0.0.0/16",
-        "mgmtSubnetName": "mgmt-subnet",
-        "mgmtSubnetPrefix": "10.0.0.0/24",
-        "webSubnetName": "web-subnet",
-        "webSubnetPrefix": "10.0.1.0/24",
-        "midSubnetName": "mid-subnet",
-        "midSubnetPrefix": "10.0.2.0/24",
-        "dataSubnetName": "data-subnet",
-        "dataSubnetPrefix": "10.0.3.0/24",
-        "publicIPAddressType": "Dynamic",
-        "dnsNameforLBIP": "[concat(parameters('resourcePrefix'), 'dnslbip')]",
-        "dnsNameforJBoxIP": "[concat(parameters('resourcePrefix'), 'dnsjboxip')]",
-        "internetLBName": "[concat(parameters('resourcePrefix'), 'internetlb')]",
-        "internalLBName": "[concat(parameters('resourcePrefix'), 'internallb')]",
-        "publicLBIPAddressName": "[concat(parameters('resourcePrefix'), 'lbpip')]",
-        "publicJBoxIPAddressName": "[concat(parameters('resourcePrefix'), 'jboxpip')]",
-        "vnetName": "[concat(parameters('resourcePrefix'), 'vnet')]",
-        "jumpBoxPrefix": "[concat(parameters('resourcePrefix'), 'jbox')]",
-        "jumpBoxSAName": "[concat(variables('jumpBoxPrefix'), 'sa')]",
-        "jumpBoxVMName": "[concat(variables('jumpBoxPrefix'), 'vm')]",
-        "jumpBoxOSDiskName": "[concat(variables('jumpBoxPrefix'), 'osdisk')]",
-        "jumpBoxVHDContainerName": "[concat(variables('jumpBoxPrefix'), 'vhd')]",
-        "jumpBoxIPConfigName": "[concat(variables('jumpBoxPrefix'), 'ipconfig')]",
-        "jumpBoxNicName": "[concat(variables('jumpBoxPrefix'), 'nic')]",
-        "webPrefix": "[concat(parameters('resourcePrefix'), 'web')]",
-        "webVMName": "[concat(variables('webPrefix'), 'vm')]",
-        "webNicName": "[concat(variables('webPrefix'), 'nic')]",
-        "webIPConfigName": "[concat(variables('webPrefix'), 'ipconfig')]",
-        "midPrefix": "[concat(parameters('resourcePrefix'), 'mid')]",
-        "midVMName": "[concat(variables('midPrefix'), 'vm')]",
-        "midNicName": "[concat(variables('midPrefix'), 'nic')]",
-        "midIPConfigName": "[concat(variables('midPrefix'), 'ipconfig')]",
-        "vhdContainerName": "[concat(parameters('resourcePrefix'), 'vhd')]",
-        "osDiskName": "[concat(parameters('resourcePrefix'), 'osdisk')]",
-        "computeApiVersion": "2016-03-30",
-        "networkApiVersion": "2016-03-30",
-        "storageApiVersion": "2015-06-15",
-        "publicIPAddressID": "[resourceId('Microsoft.Network/publicIPAddresses',variables('publicLBIPAddressName'))]",
-        "internetLBID": "[resourceId('Microsoft.Network/loadBalancers',variables('internetLBName'))]",
-        "frontEndInternetIPConfigID": "[concat(variables('internetLBID'),'/frontendIPConfigurations/InternetLoadBalancerFrontend')]",
-        "backEndInternetPoolID": "[concat(variables('internetLBID'),'/backendAddressPools/InternetLoadBalancerBackend')]",        
-        "internetLBProbeID": "[concat(variables('internetLBID'),'/probes/internetLBProbe')]",
-        "internalLBID": "[resourceId('Microsoft.Network/loadBalancers',variables('internalLBName'))]",
-        "backEndInternalPoolID": "[concat(variables('internalLBID'),'/backendAddressPools/InternalLoadBalancerBackend')]",
-        "vnetID": "[resourceId('Microsoft.Network/virtualNetworks',variables('vnetName'))]",
-        "webSubnetID": "[concat(variables('vnetID'),'/subnets/',variables ('webSubnetName'))]",
-        "midSubnetID": "[concat(variables('vnetID'),'/subnets/',variables ('midSubnetName'))]",
-        "mgmtSubnetID": "[concat(variables('vnetID'),'/subnets/',variables ('mgmtSubnetName'))]"
+        "dataConfig": {
+            "name": "[concat(parameters('resourcePrefix'), 'data')]",
+            "nicName": "[concat(variables('dataConfig').name, 'nic')]",
+            "saName": "[concat(variables('dataConfig').name, 'sa')]"
+        },
+        "jboxConfig": {
+            "name": "[concat(parameters('resourcePrefix'), 'jbox')]",
+            "nicName": "[concat(variables('dataConfig').name, 'nic')]",
+            "saName": "[concat(variables('dataConfig').name, 'sa')]"
+        },
+        "webConfig": {
+            "name": "[concat(parameters('resourcePrefix'), 'web')]",
+            "saName": "[concat(variables('dataConfig').name, 'sa')]",
+            "vmssCount": "1",
+            "vmssSAs": [
+                "[concat(uniqueString(concat(resourceGroup().id, variables('webConfig').saName, '0')))]",
+                "[concat(uniqueString(concat(resourceGroup().id, variables('webConfig').saName, '1')))]",
+                "[concat(uniqueString(concat(resourceGroup().id, variables('webConfig').saName, '2')))]",
+                "[concat(uniqueString(concat(resourceGroup().id, variables('webConfig').saName, '3')))]",
+                "[concat(uniqueString(concat(resourceGroup().id, variables('webConfig').saName, '4')))]"
+            ]
+        },
+        "storageAccountType": "Standard_LRS"
     },
     "resources": [
         {
-            "apiVersion": "[variables('networkApiVersion')]",
-            "type": "Microsoft.Network/virtualNetworks",
-            "name": "[variables('vnetName')]",
-            "location": "[resourceGroup().location]",
+            "apiVersion": "2015-01-01",
+            "name": "networkTemplate",
+            "type": "Microsoft.Resources/deployments",
             "properties": {
-                "addressSpace": {
-                    "addressPrefixes": [
-                        "[variables('addressPrefix')]"
-                    ]
+                "mode": "Incremental",
+                "templateLink": {
+                    "uri": "https://raw.githubusercontent.com/jhenriks79/zwARMDeploy/master/Stage/templates/network.json",
+                    "contentVersion": "1.0.0.0"
                 },
-                "subnets": [
-                    {
-                        "name": "[variables('mgmtSubnetName')]",
-                        "properties": {
-                            "addressPrefix": "[variables('mgmtSubnetPrefix')]"
-                        }
+                "parameters": {
+                    "resourcePrefix": {
+                        "value": "[parameters('resourcePrefix')]"
                     },
-                    {
-                        "name": "[variables('webSubnetName')]",
-                        "properties": {
-                            "addressPrefix": "[variables('webSubnetPrefix')]"
-                        }
+                    "webDNSNamePrefix": {
+                        "value": "[parameters('dnsNamePrefix')]"
                     },
-                    {
-                        "name": "[variables('midSubnetName')]",
-                        "properties": {
-                            "addressPrefix": "[variables('midSubnetPrefix')]"
-                        }
+                    "dataNicName": {
+                        "value": "[variables('dataConfig').nicName]"
                     },
-                    {
-                        "name": "[variables('dataSubnetName')]",
-                        "properties": {
-                            "addressPrefix": "[variables('dataSubnetPrefix')]"
-                        }
-                    }
-                ]
-            }
-        },
-        {
-            "apiVersion": "[variables('networkApiVersion')]",
-            "type": "Microsoft.Network/publicIPAddresses",
-            "name": "[variables('publicLBIPAddressName')]",
-            "location": "[resourceGroup().location]",
-            "properties": {
-                "publicIPAllocationMethod": "[variables('publicIPAddressType')]",
-                "dnsSettings": {
-                    "domainNameLabel": "[variables('dnsNameforLBIP')]"
-                }
-            }
-        },
-        {
-            "apiVersion": "[variables('networkApiVersion')]",
-            "name": "[variables('internetLBName')]",
-            "type": "Microsoft.Network/loadBalancers",
-            "location": "[resourceGroup().location]",
-            "dependsOn": [
-                "[concat('Microsoft.Network/publicIPAddresses/', variables('publicLBIPAddressName'))]"
-            ],
-            "properties": {
-                "frontendIPConfigurations": [
-                    {
-                        "name": "InternetLoadBalancerFrontend",
-                        "properties": {
-                            "publicIPAddress": {
-                                "id": "[variables('publicIPAddressID')]"
-                            }
-                        }
-                    }
-                ],
-                "backendAddressPools": [
-                    {
-                        "name": "InternetLoadBalancerBackend"
-                    }
-                ],
-                "loadBalancingRules": [
-                    {
-                        "name": "httpIn",
-                        "properties": {
-                            "frontendIPConfiguration": {
-                                "id": "[variables('frontEndInternetIPConfigID')]"
-                            },
-                            "backendAddressPool": {
-                                "id": "[variables('backEndInternetPoolID')]"
-                            },
-                            "protocol": "Tcp",
-                            "frontendPort": 80,
-                            "backendPort": 80,
-                            "enableFloatingIP": false,
-                            "idleTimeoutInMinutes": 5,
-                            "probe": {
-                                "id": "[variables('internetLBProbeID')]"
-                            }
-                        }
-                    },
-                    {
-                        "name": "httpsIn",
-                        "properties": {
-                            "frontendIPConfiguration": {
-                                "id": "[variables('frontEndInternetIPConfigID')]"
-                            },
-                            "backendAddressPool": {
-                                "id": "[variables('backEndInternetPoolID')]"
-                            },
-                            "protocol": "Tcp",
-                            "frontendPort": 443,
-                            "backendPort": 443,
-                            "enableFloatingIP": false,
-                            "idleTimeoutInMinutes": 5
-                        }
-                    }
-                ],
-                "probes": [
-                    {
-                        "properties": {
-                            "protocol": "Tcp",
-                            "port": 80,
-                            "intervalInSeconds": 15,
-                            "numberOfProbes": 2
-                        },
-                        "name": "internetLBProbe"
-                    }
-                ]
-            }
-        },
-        {
-            "apiVersion": "[variables('networkApiVersion')]",
-            "type": "Microsoft.Network/loadBalancers",
-            "name": "[variables('internalLBName')]",
-            "location": "[resourceGroup().location]",
-            "dependsOn": [
-                "[variables('vnetID')]"
-            ],
-            "properties": {
-                "frontendIPConfigurations": [
-                    {
-                        "properties": {
-                            "subnet": {
-                                "id": "[variables('midSubnetID')]"
-                            },
-                            "privateIPAddress": "10.0.2.5",
-                            "privateIPAllocationMethod": "Static"
-                        },
-                        "name": "InternalLoadBalancerFrontend"
-                    }
-                ],
-                "backendAddressPools": [
-                    {
-                        "name": "InternalLoadBalancerBackend"
-                    }
-                ]
-            }
-        },
-        {
-            "apiVersion": "[variables('networkApiVersion')]",
-            "type": "Microsoft.Network/publicIPAddresses",
-            "name": "[variables('publicJBoxIPAddressName')]",
-            "location": "[resourceGroup().location]",
-            "properties": {
-                "publicIPAllocationMethod": "[variables('publicIPAddressType')]",
-                "dnsSettings": {
-                    "domainNameLabel": "[variables('dnsNameforJBoxIP')]"
-                }
-            }
-        },
-        {
-            "apiVersion": "[variables('storageApiVersion')]",
-            "type": "Microsoft.Storage/storageAccounts",
-            "name": "[variables('jumpBoxSAName')]",
-            "location": "[resourceGroup().location]",
-            "properties": {
-                "accountType": "[variables('storageAccountType')]"
-            }
-        },
-        {
-            "apiVersion": "[variables('networkApiVersion')]",
-            "type": "Microsoft.Network/networkInterfaces",
-            "name": "[variables('jumpBoxNicName')]",
-            "location": "[resourceGroup().location]",
-            "dependsOn": [
-                "[concat('Microsoft.Network/publicIPAddresses/', variables('publicJBoxIPAddressName'))]",
-                "[concat('Microsoft.Network/virtualNetworks/', variables('vnetName'))]"
-            ],
-            "properties": {
-                "ipConfigurations": [
-                    {
-                        "name": "[variables('jumpBoxIPConfigName')]",
-                        "properties": {
-                            "privateIPAllocationMethod": "Dynamic",
-                            "publicIPAddress": {
-                                "id": "[resourceId('Microsoft.Network/publicIPAddresses', variables('publicJBoxIPAddressName'))]"
-                            },
-                            "subnet": {
-                                "id": "[variables('mgmtSubnetID')]"
-                            }
-                        }
-                    }
-                ]
-            }
-        },
-        {
-            "apiVersion": "[variables('computeApiVersion')]",
-            "type": "Microsoft.Compute/virtualMachines",
-            "name": "[variables('jumpBoxVMName')]",
-            "location": "[resourceGroup().location]",
-            "dependsOn": [
-                "[concat('Microsoft.Storage/storageAccounts/', variables('jumpBoxSAName'))]",
-                "[concat('Microsoft.Network/networkInterfaces/', variables('jumpBoxNicName'))]"
-            ],
-            "properties": {
-                "hardwareProfile": {
-                    "vmSize": "[parameters('vmSku')]"
-                },
-                "osProfile": {
-                    "computerName": "[variables('jumpBoxVMName')]",
-                    "adminUsername": "[parameters('adminUsername')]",
-                    "adminPassword": "[parameters('adminPassword')]"
-                },
-                "storageProfile": {
-                    "imageReference": "[variables('imageReference')]",
-                    "osDisk": {
-                        "name": "[variables('jumpBoxOSDiskName')]",
-                        "vhd": {
-                            "uri": "[concat('http://',variables('jumpBoxSAName'),'.blob.core.windows.net/',variables('jumpBoxVHDContainerName'),'/',variables('jumpBoxOSDiskName'),'.vhd')]"
-                        },
-                        "caching": "ReadWrite",
-                        "createOption": "FromImage"
-                    }
-                },
-                "networkProfile": {
-                    "networkInterfaces": [
-                        {
-                            "id": "[resourceId('Microsoft.Network/networkInterfaces',variables('jumpBoxNicName'))]"
-                        }
-                    ]
-                },
-                "diagnosticsProfile": {
-                    "bootDiagnostics": {
-                        "enabled": "true",
-                        "storageUri": "[concat('http://',variables('jumpBoxSAName'),'.blob.core.windows.net')]"
+                    "jboxNicName": {
+                        "value": "[variables('jboxConfig').nicName]"
                     }
                 }
             }
         },
         {
-            "apiVersion": "[variables('storageApiVersion')]",
-            "type": "Microsoft.Storage/storageAccounts",
-            "name": "[concat(variables('vmssSAArray')[copyIndex()], 'sa')]",
-            "location": "[resourceGroup().location]",
-            "copy": {
-                "name": "vmssSALoop",
-                "count": "[variables('vmssSACount')]"
-            },
+            "apiVersion": "2015-01-01",
+            "name": "storageTemplate",
+            "type": "Microsoft.Resources/deployments",
             "properties": {
-                "accountType": "[variables('storageAccountType')]"
-            }
-        },
-        {
-            "apiVersion": "[variables('computeApiVersion')]",
-            "type": "Microsoft.Compute/virtualMachineScaleSets",
-            "name": "[variables('webVMName')]",
-            "location": "[resourceGroup().location]",
-            "dependsOn": [
-                "vmssSALoop",
-                "[concat('Microsoft.Network/virtualNetworks/', variables('vnetName'))]"
-            ],
-            "sku": {
-                "name": "[parameters('vmSku')]",
-                "tier": "Standard",
-                "capacity": "[variables('numberOfWebVMInstances')]"
-            },
-            "properties": {
-                "overprovision": "true",
-                "upgradePolicy": {
-                    "mode": "Manual"
+                "mode": "Incremental",
+                "templateLink": {
+                    "uri": "https://raw.githubusercontent.com/jhenriks79/zwARMDeploy/master/Stage/templates/storage.json",
+                    "contentVersion": "1.0.0.0"
                 },
-                "virtualMachineProfile": {
-                    "storageProfile": {
-                        "osDisk": {
-                            "vhdContainers": [
-                                "[concat('https://', variables('vmssSAArray')[0], 'sa', '.blob.core.windows.net/', variables('vhdContainerName'))]",
-                                "[concat('https://', variables('vmssSAArray')[1], 'sa', '.blob.core.windows.net/', variables('vhdContainerName'))]",
-                                "[concat('https://', variables('vmssSAArray')[2], 'sa', '.blob.core.windows.net/', variables('vhdContainerName'))]",
-                                "[concat('https://', variables('vmssSAArray')[3], 'sa', '.blob.core.windows.net/', variables('vhdContainerName'))]",
-                                "[concat('https://', variables('vmssSAArray')[4], 'sa', '.blob.core.windows.net/', variables('vhdContainerName'))]"
-                            ],
-                            "name": "[variables('osDiskName')]",
-                            "caching": "ReadOnly",
-                            "createOption": "FromImage"
-                        },
-                        "imageReference": "[variables('imageReference')]"
+                "parameters": {
+                    "dataSAName": {
+                        "value": "[variables('dataConfig').saName]"
                     },
-                    "osProfile": {
-                        "computerNamePrefix": "[variables('webVMName')]",
-                        "adminUsername": "[parameters('adminUsername')]",
-                        "adminPassword": "[parameters('adminPassword')]"
+                    "jboxSAName": {
+                        "value": "[variables('jboxConfig').saName]"
                     },
-                    "networkProfile": {
-                        "networkInterfaceConfigurations": [
-                            {
-                                "name": "[variables('webNicName')]",
-                                "properties": {
-                                    "primary": true,
-                                    "ipConfigurations": [
-                                        {
-                                            "name": "[variables('webIPConfigName')]",
-                                            "properties": {
-                                                "subnet": {
-                                                    "id": "[variables('webSubnetID')]"
-                                                },
-                                                "loadBalancerBackendAddressPools": [
-                                                    {
-                                                        "id": "[variables('backEndInternetPoolID')]"
-                                                    }
-                                                ]
-                                            }
-                                        }
-                                    ]
-                                }
-                            }
-                        ]
+                    "storageAccountType": {
+                        "value": "[variables('storageAccountType')]"
+                    },
+                    "webVmssSAs": {
+                        "value": "[variables('webConfig').vmssSAs]"
                     }
                 }
             }
         },
         {
-            "apiVersion": "[variables('computeApiVersion')]",
-            "type": "Microsoft.Compute/virtualMachineScaleSets",
-            "name": "[variables('midVMName')]",
-            "location": "[resourceGroup().location]",
+            "apiVersion": "2015-01-01",
+            "name": "computeTemplate",
+            "type": "Microsoft.Resources/deployments",
             "dependsOn": [
-                "vmssSALoop",
-                "[concat('Microsoft.Network/virtualNetworks/', variables('vnetName'))]"
+                "[concat('Microsoft.Resources/deployments/', 'networkTemplate')]",
+                "[concat('Microsoft.Resources/deployments/', 'storageTemplate')]"
             ],
-            "sku": {
-                "name": "[parameters('vmSku')]",
-                "tier": "Standard",
-                "capacity": "[variables('numberOfmidVMInstances')]"
-            },
             "properties": {
-                "overprovision": "true",
-                "upgradePolicy": {
-                    "mode": "Manual"
+                "mode": "Incremental",
+                "templateLink": {
+                    "uri": "https://raw.githubusercontent.com/jhenriks79/zwARMDeploy/master/Stage/templates/compute.json",
+                    "contentVersion": "1.0.0.0"
                 },
-                "virtualMachineProfile": {
-                    "storageProfile": {
-                        "osDisk": {
-                            "vhdContainers": [
-                                "[concat('https://', variables('vmssSAArray')[0], 'sa', '.blob.core.windows.net/', variables('vhdContainerName'))]",
-                                "[concat('https://', variables('vmssSAArray')[1], 'sa', '.blob.core.windows.net/', variables('vhdContainerName'))]",
-                                "[concat('https://', variables('vmssSAArray')[2], 'sa', '.blob.core.windows.net/', variables('vhdContainerName'))]",
-                                "[concat('https://', variables('vmssSAArray')[3], 'sa', '.blob.core.windows.net/', variables('vhdContainerName'))]",
-                                "[concat('https://', variables('vmssSAArray')[4], 'sa', '.blob.core.windows.net/', variables('vhdContainerName'))]"
-                            ],
-                            "name": "[variables('osDiskName')]",
-                            "caching": "ReadOnly",
-                            "createOption": "FromImage"
-                        },
-                        "imageReference": "[variables('imageReference')]"
+                "parameters": {
+                    "resourcePrefix": {
+                        "value": "[parameters('resourcePrefix')]"
                     },
-                    "osProfile": {
-                        "computerNamePrefix": "[variables('midVMName')]",
-                        "adminUsername": "[parameters('adminUsername')]",
-                        "adminPassword": "[parameters('adminPassword')]"
+                    "adminUsername": {
+                        "value": "[parameters('adminUsername')]"
                     },
-                    "networkProfile": {
-                        "networkInterfaceConfigurations": [
-                            {
-                                "name": "[variables('midNicName')]",
-                                "properties": {
-                                    "primary": true,
-                                    "ipConfigurations": [
-                                        {
-                                            "name": "[variables('midIPConfigName')]",
-                                            "properties": {
-                                                "subnet": {
-                                                    "id": "[variables('midSubnetID')]"
-                                                },
-                                                "loadBalancerBackendAddressPools": [
-                                                    {
-                                                        "id": "[variables('backEndInternalPoolID')]"
-                                                    }
-                                                ]
-                                            }
-                                        }
-                                    ]
-                                }
-                            }
-                        ]
+                    "adminPassword": {
+                        "value": "[parameters('adminPassword')]"
+                    },
+                    "dataNicName": {
+                        "value": "[variables('dataConfig').nicName]"
+                    },
+                    "jboxNicName": {
+                        "value": "[variables('jboxConfig').nicName]"
+                    },
+                    "dataSAName": {
+                        "value": "[variables('dataConfig').saName]"
+                    },
+                    "jboxSAName": {
+                        "value": "[variables('jboxConfig').saName]"
+                    },
+                    "vmSize": {
+                        "value": "[parameters('vmSize')]"
+                    },
+                    "ubuntuOSVersion": {
+                        "value": "[parameters('ubuntuOSVersion')]"
+                    },
+                    "webVmCount": {
+                        "value": "[variables('webConfig').vmssCount]"
+                    },
+                    "webVmssSAs": {
+                        "value": "[variables('webConfig').vmssSAs]"
+                    },
+                    "webSubnetId": {
+                        "value": "[reference('networkTemplate').outputs.result.value.webSubnetId]"
+                    },
+                    "webBackendPoolId": {
+                        "value": "[reference('networkTemplate').outputs.result.value.webBackendPoolId]"
                     }
                 }
             }
