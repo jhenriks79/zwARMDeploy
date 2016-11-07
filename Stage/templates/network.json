@@ -92,7 +92,7 @@
         {
             "apiVersion": "[variables('apiVersion')]",
             "type": "Microsoft.Network/publicIPAddresses",
-            "name": "[variables('webLBConfig').name]",
+            "name": "[variables('webLBConfig').pipAddressName]",
             "location": "[resourceGroup().location]",
             "properties": {
                 "publicIPAllocationMethod": "[variables('webLBConfig').pipAddressType]",
