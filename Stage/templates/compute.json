@@ -141,7 +141,7 @@
             "name": "[variables('webConfig').name]",
             "location": "[resourceGroup().location]",
             "sku": {
-                "name": "[parameters('ubuntuOSVersion')]",
+                "name": "[parameters('vmSize')]",
                 "tier": "Standard",
                 "capacity": "[parameters('webVmCount')]"
             },

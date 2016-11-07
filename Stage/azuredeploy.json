@@ -134,6 +134,63 @@
                     }
                 }
             }
+        },
+        {
+            "apiVersion": "2015-01-01",
+            "name": "computeTemplate",
+            "type": "Microsoft.Resources/deployments",
+            "dependsOn": [
+                "[concat('Microsoft.Resources/deployments/', 'networkTemplate')]",
+                "[concat('Microsoft.Resources/deployments/', 'storageTemplate')]"
+            ],
+            "properties": {
+                "mode": "Incremental",
+                "templateLink": {
+                    "uri": "https://raw.githubusercontent.com/jhenriks79/zwARMDeploy/master/Stage/templates/compute.json",
+                    "contentVersion": "1.0.0.0"
+                },
+                "parameters": {
+                    "resourcePrefix": {
+                        "value": "[parameters('resourcePrefix')]"
+                    },
+                    "adminUsername": {
+                        "value": "[parameters('adminUsername')]"
+                    },
+                    "adminPassword": {
+                        "value": "[parameters('adminPassword')]"
+                    },
+                    "dataNicName": {
+                        "value": "[variables('dataConfig').nicName]"
+                    },
+                    "jboxNicName": {
+                        "value": "[variables('jboxConfig').nicName]"
+                    },
+                    "dataSAName": {
+                        "value": "[variables('dataConfig').saName]"
+                    },
+                    "jboxSAName": {
+                        "value": "[variables('jboxConfig').saName]"
+                    },
+                    "vmSize": {
+                        "value": "[parameters('vmSize')]"
+                    },
+                    "ubuntuOSVersion": {
+                        "value": "[parameters('ubuntuOSVersion')]"
+                    },
+                    "webVmCount": {
+                        "value": "[variables('webConfig').vmssCount]"
+                    },
+                    "webVmssSAs": {
+                        "value": "[variables('webConfig').vmssSAs]"
+                    },
+                    "webSubnetId": {
+                        "value": "[reference('networkTemplate').outputs.result.value.webSubnetId]"
+                    },
+                    "webBackendPoolId": {
+                        "value": "[reference('networkTemplate').outputs.result.value.webBackendPoolId]"
+                    }
+                }
+            }
         }
     ]
 }
