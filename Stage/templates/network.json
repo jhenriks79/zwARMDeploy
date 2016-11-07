@@ -41,7 +41,7 @@
             "dnsName": "[concat(parameters('resourcePrefix'), 'datalbdns')]",
             "backendPoolName": "[concat(parameters('resourcePrefix'), 'datalbbepool')]",
             "frontendIPConfigName": "[concat(parameters('resourcePrefix'), 'datalbfeipconfig')]",
-            "ipAddressPrefix": "10.0.2.5",
+            "ipAddressPrefix": "10.0.1.5",
             "ipAddressType": "Static",
             "ipConfigName": "[concat(parameters('resourcePrefix'), 'datalbipconfig')]"
         },
