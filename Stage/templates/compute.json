@@ -52,8 +52,8 @@
         "jboxVMName": "[concat(parameters('resourcePrefix'), 'jboxvm')]",
         "webConfig": {
             "name": "[concat(parameters('resourcePrefix'), 'webvm')]",
-            "nicName": "[concat(variables('webConfig').name, 'nic')]",
-            "ipConfigName": "[concat(variables('webConfig').name, 'ipconfig')]"
+            "nicName": "[concat(parameters('resourcePrefix'), 'webvmnic')]",
+            "ipConfigName": "[concat(parameters('resourcePrefix'), 'webvmipconfig')]"
         }
     },
     "resources": [
