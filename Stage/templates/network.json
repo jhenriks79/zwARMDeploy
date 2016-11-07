@@ -221,7 +221,7 @@
             "name": "[parameters('dataNicName')]",
             "location": "[resourceGroup().location]",
             "dependsOn": [
-                "[concat('Microsoft.Network/virtualNetworks/', variables('dataLBConfig').name)]"
+                "[concat('Microsoft.Network/virtualNetworks/', variables('vnetConfig').name)]"
             ],
             "properties": {
                 "ipConfigurations": [
