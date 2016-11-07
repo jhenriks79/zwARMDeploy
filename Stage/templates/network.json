@@ -30,28 +30,28 @@
         },
         "webLBConfig": {
             "name": "[concat(parameters('resourcePrefix'), 'weblb')]",
-            "backendPoolName": "[concat(variables('webLBConfig').name, 'bepool')]",
-            "frontendIPConfigName": "[concat(variables('webLBConfig').name, 'feipconfig')]",
-            "pipAddressName": "[concat(variables('webLBConfig').name, 'pip')]",
+            "backendPoolName": "[concat(parameters('resourcePrefix'), 'weblbbepool')]",
+            "frontendIPConfigName": "[concat(parameters('resourcePrefix'), 'weblbfeipconfig')]",
+            "pipAddressName": "[concat(parameters('resourcePrefix'), 'weblbpip')]",
             "pipAddressType": "Dynamic",
-            "probeName": "[concat(variables('webLBConfig').name, 'probe')]"
+            "probeName": "[concat(parameters('resourcePrefix'), 'weblbprobe')]"
         },
         "dataLBConfig": {
             "name": "[concat(parameters('resourcePrefix'), 'datalb')]",
-            "dnsName": "[concat(variables('dataLBConfig').name, 'dns')]",
-            "backendPoolName": "[concat(variables('dataLBConfig').name, 'bepool')]",
-            "frontendIPConfigName": "[concat(variables('dataLBConfig').name, 'feipconfig')]",
+            "dnsName": "[concat(parameters('resourcePrefix'), 'datalbdns')]",
+            "backendPoolName": "[concat(parameters('resourcePrefix'), 'datalbbepool')]",
+            "frontendIPConfigName": "[concat(parameters('resourcePrefix'), 'datalbfeipconfig')]",
             "ipAddressPrefix": "10.0.2.5",
             "ipAddressType": "Static",
-            "ipConfigName": "[concat(variables('dataLBConfig').name, 'ipconfig')]"
+            "ipConfigName": "[concat(parameters('resourcePrefix'), 'datalbipconfig')]"
         },
         "jboxConfig": {
             "name": "[concat(parameters('resourcePrefix'), 'jboxlb')]",
-            "dnsName": "[concat(variables('jboxConfig').name, 'dns')]",
-            "backendPoolName": "[concat(variables('jboxConfig').name, 'bepool')]",
-            "frontendIPConfigName": "[concat(variables('jboxConfig').name, 'feipconfig')]",
-            "ipConfigName": "[concat(variables('jboxConfig').name, 'ipconfig')]",
-            "pipAddressName": "[concat(variables('jboxConfig').name, 'pip')]",
+            "dnsName": "[concat(parameters('resourcePrefix'), 'jboxlbdns')]",
+            "backendPoolName": "[concat(parameters('resourcePrefix'), 'jboxlbbepool')]",
+            "frontendIPConfigName": "[concat(parameters('resourcePrefix'), 'jboxlbfeipconfig')]",
+            "ipConfigName": "[concat(parameters('resourcePrefix'), 'jboxlbipconfig')]",
+            "pipAddressName": "[concat(parameters('resourcePrefix'), 'jboxlbpip')]",
             "pipAddressType": "Static"
         }
     },

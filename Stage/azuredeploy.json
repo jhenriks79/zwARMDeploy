@@ -4,7 +4,7 @@
     "parameters": {
         "resourcePrefix": {
             "type": "string",
-            "defaultValue": "zwstagewe",
+            "defaultValue": "zwstagewus",
             "metadata": {
                 "description": "The prefix to use for all resources when provisioning"
             }
@@ -60,24 +60,24 @@
     "variables": {
         "dataConfig": {
             "name": "[concat(parameters('resourcePrefix'), 'data')]",
-            "nicName": "[concat(variables('dataConfig').name, 'nic')]",
-            "saName": "[concat(variables('dataConfig').name, 'sa')]"
+            "nicName": "[concat(parameters('resourcePrefix'), 'datanic')]",
+            "saName": "[concat(parameters('resourcePrefix'), 'datasa')]"
         },
         "jboxConfig": {
             "name": "[concat(parameters('resourcePrefix'), 'jbox')]",
-            "nicName": "[concat(variables('dataConfig').name, 'nic')]",
-            "saName": "[concat(variables('dataConfig').name, 'sa')]"
+            "nicName": "[concat(parameters('resourcePrefix'), 'jboxnic')]",
+            "saName": "[concat(parameters('resourcePrefix'), 'jboxsa')]"
         },
         "webConfig": {
             "name": "[concat(parameters('resourcePrefix'), 'web')]",
-            "saName": "[concat(variables('dataConfig').name, 'sa')]",
+            "saName": "[concat(parameters('resourcePrefix'), 'websa')]",
             "vmssCount": "1",
             "vmssSAs": [
-                "[concat(uniqueString(concat(resourceGroup().id, variables('webConfig').saName, '0')))]",
-                "[concat(uniqueString(concat(resourceGroup().id, variables('webConfig').saName, '1')))]",
-                "[concat(uniqueString(concat(resourceGroup().id, variables('webConfig').saName, '2')))]",
-                "[concat(uniqueString(concat(resourceGroup().id, variables('webConfig').saName, '3')))]",
-                "[concat(uniqueString(concat(resourceGroup().id, variables('webConfig').saName, '4')))]"
+                "[concat(uniqueString(concat(resourceGroup().id, parameters('resourcePrefix'), 'websa', '0')), 'websa', '0')]",
+                "[concat(uniqueString(concat(resourceGroup().id, parameters('resourcePrefix'), 'websa', '1')), 'websa', '1')]",
+                "[concat(uniqueString(concat(resourceGroup().id, parameters('resourcePrefix'), 'websa', '2')), 'websa', '2')]",
+                "[concat(uniqueString(concat(resourceGroup().id, parameters('resourcePrefix'), 'websa', '3')), 'websa', '3')]",
+                "[concat(uniqueString(concat(resourceGroup().id, parameters('resourcePrefix'), 'websa', '4')), 'websa', '4')]"
             ]
         },
         "storageAccountType": "Standard_LRS"
@@ -131,63 +131,6 @@
                     },
                     "webVmssSAs": {
                         "value": "[variables('webConfig').vmssSAs]"
-                    }
-                }
-            }
-        },
-        {
-            "apiVersion": "2015-01-01",
-            "name": "computeTemplate",
-            "type": "Microsoft.Resources/deployments",
-            "dependsOn": [
-                "[concat('Microsoft.Resources/deployments/', 'networkTemplate')]",
-                "[concat('Microsoft.Resources/deployments/', 'storageTemplate')]"
-            ],
-            "properties": {
-                "mode": "Incremental",
-                "templateLink": {
-                    "uri": "https://raw.githubusercontent.com/jhenriks79/zwARMDeploy/master/Stage/templates/compute.json",
-                    "contentVersion": "1.0.0.0"
-                },
-                "parameters": {
-                    "resourcePrefix": {
-                        "value": "[parameters('resourcePrefix')]"
-                    },
-                    "adminUsername": {
-                        "value": "[parameters('adminUsername')]"
-                    },
-                    "adminPassword": {
-                        "value": "[parameters('adminPassword')]"
-                    },
-                    "dataNicName": {
-                        "value": "[variables('dataConfig').nicName]"
-                    },
-                    "jboxNicName": {
-                        "value": "[variables('jboxConfig').nicName]"
-                    },
-                    "dataSAName": {
-                        "value": "[variables('dataConfig').saName]"
-                    },
-                    "jboxSAName": {
-                        "value": "[variables('jboxConfig').saName]"
-                    },
-                    "vmSize": {
-                        "value": "[parameters('vmSize')]"
-                    },
-                    "ubuntuOSVersion": {
-                        "value": "[parameters('ubuntuOSVersion')]"
-                    },
-                    "webVmCount": {
-                        "value": "[variables('webConfig').vmssCount]"
-                    },
-                    "webVmssSAs": {
-                        "value": "[variables('webConfig').vmssSAs]"
-                    },
-                    "webSubnetId": {
-                        "value": "[reference('networkTemplate').outputs.result.value.webSubnetId]"
-                    },
-                    "webBackendPoolId": {
-                        "value": "[reference('networkTemplate').outputs.result.value.webBackendPoolId]"
                     }
                 }
             }
