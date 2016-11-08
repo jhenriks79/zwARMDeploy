@@ -43,7 +43,7 @@
         }
     },
     "variables": {
-        "apiVersion": "2016-03-30",
+        "apiVersion": "2015-08-01",
         "imagePublisher": "Canonical",
         "imageOffer": "UbuntuServer",
         "osDiskName": "osdisk",
