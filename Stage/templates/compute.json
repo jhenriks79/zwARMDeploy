@@ -43,7 +43,6 @@
         }
     },
     "variables": {
-        "apiVersion": "2015-08-01",
         "imagePublisher": "Canonical",
         "imageOffer": "UbuntuServer",
         "osDiskName": "osdisk",
@@ -58,7 +57,7 @@
     },
     "resources": [
         {
-            "apiVersion": "[variables('apiVersion')]",
+            "apiVersion": "2015-08-01",
             "type": "Microsoft.Compute/virtualMachines",
             "name": "[variables('dataVMName')]",
             "location": "[resourceGroup().location]",
@@ -81,7 +80,7 @@
                     "osDisk": {
                         "name": "osdisk",
                         "vhd": {
-                            "uri": "[concat(reference(concat('Microsoft.Storage/storageAccounts/', parameters('dataSAName')), variables('apiVersion')).primaryEndpoints.blob, variables('vhdContainerName'),'/',variables('osDiskName'),'.vhd')]"
+                            "uri": "[concat(reference(concat('Microsoft.Storage/storageAccounts/', parameters('dataSAName')), '2015-06-15').primaryEndpoints.blob, variables('vhdContainerName'),'/',variables('osDiskName'),'.vhd')]"
                         },
                         "caching": "ReadWrite",
                         "createOption": "FromImage"
@@ -97,7 +96,7 @@
             }
         },
         {
-            "apiVersion": "[variables('apiVersion')]",
+            "apiVersion": "2015-08-01",
             "type": "Microsoft.Compute/virtualMachines",
             "name": "[variables('jboxVMName')]",
             "location": "[resourceGroup().location]",
@@ -120,7 +119,7 @@
                     "osDisk": {
                         "name": "osdisk",
                         "vhd": {
-                            "uri": "[concat(reference(concat('Microsoft.Storage/storageAccounts/', parameters('jboxSAName')), variables('apiVersion')).primaryEndpoints.blob, variables('vhdContainerName'),'/',variables('osDiskName'),'.vhd')]"
+                            "uri": "[concat(reference(concat('Microsoft.Storage/storageAccounts/', parameters('jboxSAName')), '2015-06-15').primaryEndpoints.blob, variables('vhdContainerName'),'/',variables('osDiskName'),'.vhd')]"
                         },
                         "caching": "ReadWrite",
                         "createOption": "FromImage"
@@ -136,7 +135,7 @@
             }
         },
         {
-            "apiVersion": "[variables('apiVersion')]",
+            "apiVersion": "2015-08-01",
             "type": "Microsoft.Compute/virtualMachineScaleSets",
             "name": "[variables('webConfig').name]",
             "location": "[resourceGroup().location]",

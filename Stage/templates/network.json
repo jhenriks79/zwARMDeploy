@@ -16,7 +16,6 @@
         }
     },
     "variables": {
-        "apiVersion": "2015-08-01",
         "nsgName": "[concat(parameters('resourcePrefix'), 'nsg')]",
         "vnetConfig": {
             "name": "[concat(parameters('resourcePrefix'), 'vnet')]",
@@ -57,7 +56,7 @@
     },
     "resources": [
         {
-            "apiVersion": "[variables('apiVersion')]",
+            "apiVersion": "2016-03-30",
             "type": "Microsoft.Network/virtualNetworks",
             "name": "[variables('vnetConfig').name]",
             "location": "[resourceGroup().location]",
@@ -114,7 +113,7 @@
             }
         },
         {
-            "apiVersion": "[variables('apiVersion')]",
+            "apiVersion": "2016-03-30",
             "name": "[variables('webLBConfig').name]",
             "type": "Microsoft.Network/loadBalancers",
             "location": "[resourceGroup().location]",
@@ -188,7 +187,7 @@
             }
         },
         {
-            "apiVersion": "[variables('apiVersion')]",
+            "apiVersion": "2016-03-30",
             "type": "Microsoft.Network/loadBalancers",
             "name": "[variables('dataLBConfig').name]",
             "location": "[resourceGroup().location]",
@@ -216,7 +215,7 @@
             }
         },
         {
-            "apiVersion": "[variables('apiVersion')]",
+            "apiVersion": "2016-03-30",
             "type": "Microsoft.Network/networkInterfaces",
             "name": "[parameters('dataNicName')]",
             "location": "[resourceGroup().location]",
@@ -238,7 +237,7 @@
             }
         },
         {
-            "apiVersion": "[variables('apiVersion')]",
+            "apiVersion": "2016-03-30",
             "type": "Microsoft.Network/networkInterfaces",
             "name": "[parameters('jboxNicName')]",
             "location": "[resourceGroup().location]",
@@ -264,7 +263,7 @@
             }
         },
         {
-            "apiVersion": "[variables('apiVersion')]",
+            "apiVersion": "2016-03-30",
             "type": "Microsoft.Network/networkSecurityGroups",
             "name": "[variables('nsgName')]",
             "location": "[resourceGroup().location]",

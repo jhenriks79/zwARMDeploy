@@ -16,12 +16,11 @@
         }
     },
     "variables": {
-        "apiVersion": "2015-06-15",
         "webVmssSAsCount": "[length(parameters('webVmssSAs'))]"
     },
     "resources": [
         {
-            "apiVersion": "[variables('apiVersion')]",
+            "apiVersion": "2015-06-15",
             "type": "Microsoft.Storage/storageAccounts",
             "name": "[parameters('jboxSAName')]",
             "location": "[resourceGroup().location]",
@@ -30,7 +29,7 @@
             }
         },
         {
-            "apiVersion": "[variables('apiVersion')]",
+            "apiVersion": "2015-06-15",
             "type": "Microsoft.Storage/storageAccounts",
             "name": "[parameters('webVmssSAs')[copyIndex()]]",
             "location": "[resourceGroup().location]",
@@ -43,7 +42,7 @@
             }
         },
         {
-            "apiVersion": "[variables('apiVersion')]",
+            "apiVersion": "2015-06-15",
             "type": "Microsoft.Storage/storageAccounts",
             "name": "[parameters('dataSAName')]",
             "location": "[resourceGroup().location]",
