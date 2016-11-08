@@ -90,7 +90,7 @@
             }
         },
         {
-            "apiVersion": "[variables('apiVersion')]",
+            "apiVersion": "2016-03-30",
             "type": "Microsoft.Network/publicIPAddresses",
             "name": "[variables('webLBConfig').pipAddressName]",
             "location": "[resourceGroup().location]",
@@ -102,7 +102,7 @@
             }
         },
         {
-            "apiVersion": "[variables('apiVersion')]",
+            "apiVersion": "2016-03-30",
             "type": "Microsoft.Network/publicIPAddresses",
             "name": "[variables('jboxConfig').pipAddressName]",
             "location": "[resourceGroup().location]",
