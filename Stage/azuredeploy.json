@@ -58,6 +58,7 @@
         }
     },
     "variables": {
+        "apiVersion": "2016-09-01",
         "dataConfig": {
             "name": "[concat(parameters('resourcePrefix'), 'data')]",
             "nicName": "[concat(parameters('resourcePrefix'), 'datanic')]",
@@ -84,7 +85,7 @@
     },
     "resources": [
         {
-            "apiVersion": "2015-01-01",
+            "apiVersion": "[variables('apiVersion')]",
             "name": "networkTemplate",
             "type": "Microsoft.Resources/deployments",
             "properties": {
@@ -92,7 +93,7 @@
                 "templateLink": {
                     "uri": "https://raw.githubusercontent.com/jhenriks79/zwARMDeploy/master/Stage/templates/network.json",
                     "contentVersion": "1.0.0.0"
-                },
+                },                
                 "parameters": {
                     "resourcePrefix": {
                         "value": "[parameters('resourcePrefix')]"
@@ -110,7 +111,7 @@
             }
         },
         {
-            "apiVersion": "2015-01-01",
+            "apiVersion": "[variables('apiVersion')]",
             "name": "storageTemplate",
             "type": "Microsoft.Resources/deployments",
             "properties": {
@@ -118,7 +119,7 @@
                 "templateLink": {
                     "uri": "https://raw.githubusercontent.com/jhenriks79/zwARMDeploy/master/Stage/templates/storage.json",
                     "contentVersion": "1.0.0.0"
-                },
+                },                
                 "parameters": {
                     "dataSAName": {
                         "value": "[variables('dataConfig').saName]"
@@ -136,7 +137,7 @@
             }
         },
         {
-            "apiVersion": "2015-01-01",
+            "apiVersion": "[variables('apiVersion')]",
             "name": "computeTemplate",
             "type": "Microsoft.Resources/deployments",
             "dependsOn": [
