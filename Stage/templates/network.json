@@ -16,7 +16,11 @@
         }
     },
     "variables": {
-        "nsgName": "[concat(parameters('resourcePrefix'), 'nsg')]",
+        "nsgConfig": {
+            "webNsgName": "[concat(parameters('resourcePrefix'), 'webnsg')]",
+            "dataNsgName": "[concat(parameters('resourcePrefix'), 'datansg')]",
+            "mgmtNsgName": "[concat(parameters('resourcePrefix'), 'mgmtnsg')]"
+        },
         "vnetConfig": {
             "name": "[concat(parameters('resourcePrefix'), 'vnet')]",
             "addressPrefix": "10.0.0.0/16",
@@ -60,6 +64,11 @@
             "type": "Microsoft.Network/virtualNetworks",
             "name": "[variables('vnetConfig').name]",
             "location": "[resourceGroup().location]",
+            "dependsOn": [
+                "[resourceId('Microsoft.Network/networkSecurityGroups', variables('nsgConfig').webNsgName)]",
+                "[resourceId('Microsoft.Network/networkSecurityGroups', variables('nsgConfig').dataNsgName)]",
+                "[resourceId('Microsoft.Network/networkSecurityGroups', variables('nsgConfig').mgmtNsgName)]"
+            ],
             "properties": {
                 "addressSpace": {
                     "addressPrefixes": [
@@ -265,7 +274,7 @@
         {
             "apiVersion": "2016-03-30",
             "type": "Microsoft.Network/networkSecurityGroups",
-            "name": "[variables('nsgName')]",
+            "name": "[variables('nsgConfig').webNsgName]",
             "location": "[resourceGroup().location]",
             "properties": {
                 "securityRules": [
@@ -298,6 +307,96 @@
                         }
                     },
                     {
+                        "name": "allow-mgmt",
+                        "properties": {
+                            "description": "Allow mgmt subnet",
+                            "protocol": "Tcp",
+                            "sourcePortRange": "*",
+                            "destinationPortRange": "*",
+                            "sourceAddressPrefix": "10.0.2.*",
+                            "destinationAddressPrefix": "*",
+                            "access": "Allow",
+                            "priority": 200,
+                            "direction": "Inbound"
+                        }
+                    },
+                    {
+                        "name": "deny-all-in",
+                        "properties": {
+                            "description": "Deny All Inbound",
+                            "protocol": "Tcp",
+                            "sourcePortRange": "*",
+                            "destinationPortRange": "*",
+                            "sourceAddressPrefix": "*",
+                            "destinationAddressPrefix": "*",
+                            "access": "Deny",
+                            "priority": 300,
+                            "direction": "Inbound"
+                        }
+                    }
+                ]
+            }
+        },
+        {
+            "apiVersion": "2016-03-30",
+            "type": "Microsoft.Network/networkSecurityGroups",
+            "name": "[variables('nsgConfig').dataNsgName]",
+            "location": "[resourceGroup().location]",
+            "properties": {
+                "securityRules": [
+                    {
+                        "name": "allow-web",
+                        "properties": {
+                            "description": "Allow web subnet",
+                            "protocol": "Tcp",
+                            "sourcePortRange": "*",
+                            "destinationPortRange": "*",
+                            "sourceAddressPrefix": "10.0.0.*",
+                            "destinationAddressPrefix": "*",
+                            "access": "Allow",
+                            "priority": 100,
+                            "direction": "Inbound"
+                        }
+                    },
+                    {
+                        "name": "allow-mgmt",
+                        "properties": {
+                            "description": "Allow mgmt subnet",
+                            "protocol": "Tcp",
+                            "sourcePortRange": "*",
+                            "destinationPortRange": "*",
+                            "sourceAddressPrefix": "10.0.2.*",
+                            "destinationAddressPrefix": "*",
+                            "access": "Allow",
+                            "priority": 101,
+                            "direction": "Inbound"
+                        }
+                    },
+                    {
+                        "name": "deny-all-in",
+                        "properties": {
+                            "description": "Deny All Inbound",
+                            "protocol": "Tcp",
+                            "sourcePortRange": "*",
+                            "destinationPortRange": "*",
+                            "sourceAddressPrefix": "*",
+                            "destinationAddressPrefix": "*",
+                            "access": "Deny",
+                            "priority": 200,
+                            "direction": "Inbound"
+                        }
+                    }
+                ]
+            }
+        },
+        {
+            "apiVersion": "2016-03-30",
+            "type": "Microsoft.Network/networkSecurityGroups",
+            "name": "[variables('nsgConfig').mgmtNsgName]",
+            "location": "[resourceGroup().location]",
+            "properties": {
+                "securityRules": [
+                    {
                         "name": "allow-justin",
                         "properties": {
                             "description": "Allow Justin",
@@ -307,7 +406,7 @@
                             "sourceAddressPrefix": "71.231.12.245",
                             "destinationAddressPrefix": "*",
                             "access": "Allow",
-                            "priority": 200,
+                            "priority": 100,
                             "direction": "Inbound"
                         }
                     },
@@ -321,7 +420,21 @@
                             "sourceAddressPrefix": "77.27.225.108",
                             "destinationAddressPrefix": "*",
                             "access": "Allow",
-                            "priority": 201,
+                            "priority": 101,
+                            "direction": "Inbound"
+                        }
+                    },
+                    {
+                        "name": "deny-all-in",
+                        "properties": {
+                            "description": "Deny All Inbound",
+                            "protocol": "Tcp",
+                            "sourcePortRange": "*",
+                            "destinationPortRange": "*",
+                            "sourceAddressPrefix": "*",
+                            "destinationAddressPrefix": "*",
+                            "access": "Deny",
+                            "priority": 200,
                             "direction": "Inbound"
                         }
                     }
