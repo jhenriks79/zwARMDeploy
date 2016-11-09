@@ -79,19 +79,28 @@
                     {
                         "name": "[variables('vnetConfig').webSubnetName]",
                         "properties": {
-                            "addressPrefix": "[variables('vnetConfig').webSubnetPrefix]"
+                            "addressPrefix": "[variables('vnetConfig').webSubnetPrefix]",
+                            "networkSecurityGroup": {
+                                "id": "[resourceId('Microsoft.Network/networkSecurityGroups', variables('nsgConfig').webNsgName)]"
+                            }
                         }
                     },
                     {
                         "name": "[variables('vnetConfig').dataSubnetName]",
                         "properties": {
-                            "addressPrefix": "[variables('vnetConfig').dataSubnetPrefix]"
+                            "addressPrefix": "[variables('vnetConfig').dataSubnetPrefix]",
+                            "networkSecurityGroup": {
+                                "id": "[resourceId('Microsoft.Network/networkSecurityGroups', variables('nsgConfig').dataNsgName)]"
+                            }
                         }
                     },
                     {
                         "name": "[variables('vnetConfig').mgmtSubnetName]",
                         "properties": {
-                            "addressPrefix": "[variables('vnetConfig').mgmtSubnetPrefix]"
+                            "addressPrefix": "[variables('vnetConfig').mgmtSubnetPrefix]",
+                            "networkSecurityGroup": {
+                                "id": "[resourceId('Microsoft.Network/networkSecurityGroups', variables('nsgConfig').mgmtNsgName)]"
+                            }
                         }
                     }
                 ]
