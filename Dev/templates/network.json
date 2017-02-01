@@ -13,10 +13,10 @@
         }
     },
     "variables": {
-        "apiVersion": "2015-06-15",        
+        "apiVersion": "2015-06-15",
         "addressPrefix": "10.0.0.0/16",
         "subnetName": "[concat(parameters('resourcePrefix'), 'subnet')]",
-        "subnetPrefix": "10.0.0.0/24",        
+        "subnetPrefix": "10.0.0.0/24",
         "publicIPAddressName": "[concat(parameters('resourcePrefix'), 'pip')]",
         "publicIPAddressType": "Dynamic",
         "virtualNetworkName": "[concat(parameters('resourcePrefix'), 'vnet')]",
@@ -24,8 +24,7 @@
         "subnetRef": "[concat(variables('vnetID'),'/subnets/',variables('subnetName'))]",
         "nsgName": "[concat(parameters('resourcePrefix'), 'nsg')]"
     },
-    "resources": [
-        {
+    "resources": [{
             "apiVersion": "[variables('apiVersion')]",
             "type": "Microsoft.Network/publicIPAddresses",
             "name": "[variables('publicIPAddressName')]",
@@ -51,17 +50,15 @@
                         "[variables('addressPrefix')]"
                     ]
                 },
-                "subnets": [
-                    {
-                        "name": "[variables('subnetName')]",
-                        "properties": {
-                            "addressPrefix": "[variables('subnetPrefix')]",
-                            "networkSecurityGroup": {
-                                "id": "[resourceId('Microsoft.Network/networkSecurityGroups', variables('nsgName'))]"
-                            }
+                "subnets": [{
+                    "name": "[variables('subnetName')]",
+                    "properties": {
+                        "addressPrefix": "[variables('subnetPrefix')]",
+                        "networkSecurityGroup": {
+                            "id": "[resourceId('Microsoft.Network/networkSecurityGroups', variables('nsgName'))]"
                         }
                     }
-                ]
+                }]
             }
         },
         {
@@ -74,20 +71,18 @@
                 "[concat('Microsoft.Network/virtualNetworks/', variables('virtualNetworkName'))]"
             ],
             "properties": {
-                "ipConfigurations": [
-                    {
-                        "name": "[concat(parameters('nicName'), 'ipconfig')]",
-                        "properties": {
-                            "privateIPAllocationMethod": "Dynamic",
-                            "publicIPAddress": {
-                                "id": "[resourceId('Microsoft.Network/publicIPAddresses',variables('publicIPAddressName'))]"
-                            },
-                            "subnet": {
-                                "id": "[variables('subnetRef')]"
-                            }
+                "ipConfigurations": [{
+                    "name": "[concat(parameters('nicName'), 'ipconfig')]",
+                    "properties": {
+                        "privateIPAllocationMethod": "Dynamic",
+                        "publicIPAddress": {
+                            "id": "[resourceId('Microsoft.Network/publicIPAddresses',variables('publicIPAddressName'))]"
+                        },
+                        "subnet": {
+                            "id": "[variables('subnetRef')]"
                         }
                     }
-                ]
+                }]
             }
         },
         {
@@ -96,8 +91,7 @@
             "name": "[variables('nsgName')]",
             "location": "[resourceGroup().location]",
             "properties": {
-                "securityRules": [
-                    {
+                "securityRules": [{
                         "name": "allow-http",
                         "properties": {
                             "description": "Allow HTTP",
@@ -146,10 +140,52 @@
                             "protocol": "Tcp",
                             "sourcePortRange": "*",
                             "destinationPortRange": "22",
-                            "sourceAddressPrefix": "77.27.225.108",
+                            "sourceAddressPrefix": "77.26.194.94",
                             "destinationAddressPrefix": "*",
                             "access": "Allow",
                             "priority": 201,
+                            "direction": "Inbound"
+                        }
+                    },
+                    {
+                        "name": "allow-nacho",
+                        "properties": {
+                            "description": "Allow Nacho",
+                            "protocol": "Tcp",
+                            "sourcePortRange": "*",
+                            "destinationPortRange": "22",
+                            "sourceAddressPrefix": "95.123.23.182",
+                            "destinationAddressPrefix": "*",
+                            "access": "Allow",
+                            "priority": 202,
+                            "direction": "Inbound"
+                        }
+                    },
+                    {
+                        "name": "allow-ruben",
+                        "properties": {
+                            "description": "Allow Ruben",
+                            "protocol": "Tcp",
+                            "sourcePortRange": "*",
+                            "destinationPortRange": "22",
+                            "sourceAddressPrefix": "90.162.51.107",
+                            "destinationAddressPrefix": "*",
+                            "access": "Allow",
+                            "priority": 203,
+                            "direction": "Inbound"
+                        }
+                    },
+                    {
+                        "name": "allow-jason",
+                        "properties": {
+                            "description": "Allow Jason",
+                            "protocol": "Tcp",
+                            "sourcePortRange": "*",
+                            "destinationPortRange": "22",
+                            "sourceAddressPrefix": "67.160.43.53",
+                            "destinationAddressPrefix": "*",
+                            "access": "Allow",
+                            "priority": 204,
                             "direction": "Inbound"
                         }
                     },
@@ -166,7 +202,7 @@
                             "priority": 300,
                             "direction": "Inbound"
                         }
-                    }                    
+                    }
                 ]
             }
         }
