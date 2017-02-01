@@ -140,7 +140,7 @@
                             "protocol": "Tcp",
                             "sourcePortRange": "*",
                             "destinationPortRange": "22",
-                            "sourceAddressPrefix": "77.26.194.94",
+                            "sourceAddressPrefix": "77.26.192.51",
                             "destinationAddressPrefix": "*",
                             "access": "Allow",
                             "priority": 201,
