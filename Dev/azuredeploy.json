@@ -10,19 +10,19 @@
             }
         },
         "adminUsername": {
-            "type": "string",            
+            "type": "string",
             "metadata": {
                 "description": "User name for the Virtual Machine."
             }
         },
         "adminPassword": {
-            "type": "securestring",            
+            "type": "securestring",
             "metadata": {
                 "description": "Password for the Virtual Machine."
             }
         },
         "dnsNamePrefix": {
-            "type": "string",            
+            "type": "string",
             "metadata": {
                 "description": "DNS Name for the publicly accessible node. Must be lowercase. It should match with the following regular expression: ^[a-z][a-z0-9-]{1,61}[a-z0-9]$ or it will raise an error."
             }
@@ -46,12 +46,7 @@
         },
         "ubuntuOSVersion": {
             "type": "string",
-            "defaultValue": "14.04.2-LTS",
-            "allowedValues": [
-                "12.04.5-LTS",
-                "14.04.2-LTS",
-                "15.10"
-            ],
+            "defaultValue": "16.04.0-LTS",
             "metadata": {
                 "description": "The Ubuntu version for the VM. This will pick a fully patched image of this given Ubuntu version. Allowed values: 12.04.5-LTS, 14.04.2-LTS, 15.10."
             }
@@ -62,8 +57,7 @@
         "storageAccountName": "[concat(parameters('resourcePrefix'), 'sa')]",
         "storageAccountType": "Standard_LRS"
     },
-    "resources": [
-        {
+    "resources": [{
             "apiVersion": "2015-01-01",
             "name": "networkTemplate",
             "type": "Microsoft.Resources/deployments",
